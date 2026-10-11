@@ -42,4 +42,12 @@ class User extends Authenticatable
             'user_id'
         );
     }
+
+    public function tcpConsultas(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(
+            \App\Models\TcpConsulta::class,
+            'user_id'
+        );
+    }
 }
