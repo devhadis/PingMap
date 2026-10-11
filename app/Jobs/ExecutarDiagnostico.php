@@ -41,6 +41,10 @@ class ExecutarDiagnostico implements ShouldQueue
                 'status' => $resultado['status'],
                 'perda_percentual' => $resultado['perda_percentual'],
                 'latencia_media_ms' => $resultado['latencia_media_ms'],
+                'latencia_minima_ms' => $resultado['latencia_minima_ms'] ?? null,
+                'latencia_maxima_ms' => $resultado['latencia_maxima_ms'] ?? null,
+                'jitter_ms' => $resultado['jitter_ms'] ?? null,
+                'amostras' => $resultado['amostras'] ?? null,
                 'erro' => null,
             ]);
         } catch (Throwable $e) {

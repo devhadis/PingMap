@@ -51,9 +51,25 @@
         a { color: #7dd3fc; }
         .error { color: #fca5a5; font-size: 14px; }
         .footer { text-align: center; margin-top: 20px; }
+
+        body.dashboard-page {
+            align-items: flex-start;
+        }
+        body.dashboard-page .card {
+            max-width: 1200px;
+            padding: 28px;
+        }
+        @media (max-width: 640px) {
+            body.dashboard-page {
+                padding: 10px;
+            }
+            body.dashboard-page .card {
+                padding: 16px;
+            }
+        }
     </style>
 </head>
-<body>
+<body class="@yield('body_class')">
     <main class="card">
         @yield('content')
     </main>

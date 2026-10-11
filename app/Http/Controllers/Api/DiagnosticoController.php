@@ -57,6 +57,10 @@ class DiagnosticoController extends Controller
             'status' => $diagnostico->status,
             'perda_percentual' => $diagnostico->perda_percentual,
             'latencia_media_ms' => $diagnostico->latencia_media_ms,
+            'latencia_minima_ms' => $diagnostico->latencia_minima_ms,
+            'latencia_maxima_ms' => $diagnostico->latencia_maxima_ms,
+            'jitter_ms' => $diagnostico->jitter_ms,
+            'amostras' => $diagnostico->amostras,
             'created_at' => $diagnostico->created_at,
             'updated_at' => $diagnostico->updated_at,
         ]);

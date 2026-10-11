@@ -85,6 +85,7 @@ class PingService
 
         $status = match (true) {
             $codigo === 0 => 'sucesso',
+            $codigo === 1 && $metricasAvancadas['amostras'] > 0 => 'sucesso',
             $codigo === 1 => 'sem_resposta',
             default => 'erro',
         };
