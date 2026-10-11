@@ -31,8 +31,10 @@ class TcpService
         private ?Closure $conector = null
     ) {}
 
-    public function verificar(string $destino, int $porta): array
-    {
+    public function validarEntrada(
+        string $destino,
+        int $porta
+    ): array {
         $this->validarDestino($destino);
 
         if (!in_array($porta, self::PORTAS_PERMITIDAS, true)) {
@@ -40,6 +42,16 @@ class TcpService
                 'Porta TCP não permitida.'
             );
         }
+
+        return [
+            'destino' => $destino,
+            'porta' => $porta,
+        ];
+    }
+
+    public function verificar(string $destino, int $porta): array
+    {
+        $this->validarEntrada($destino, $porta);
 
         $endpoint = "tcp://{$destino}:{$porta}";
         $timeout = 2.0;
