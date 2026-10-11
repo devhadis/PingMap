@@ -17,18 +17,49 @@ class DnsService
         private readonly ?\Closure $resolvedor = null
     ) {}
 
-    public function consultar(string $dominio, string $tipo): array
+    public function validarEntrada(string $dominio, string $tipo): array
     {
         $tipo = strtoupper(trim($tipo));
         $dominio = strtolower(rtrim(trim($dominio), '.'));
 
         if (!in_array($tipo, self::TIPOS, true)) {
+            throw new InvalidArgumentException('Tipo DNS não permitido.');
+        }
+
+        $ip = filter_var($dominio, FILTER_VALIDATE_IP);
+
+        if ($tipo === 'PTR') {
+            if (!$ip || !filter_var(
+                $dominio,
+                FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+            )) {
+                throw new InvalidArgumentException(
+                    'PTR exige um endereço IP público.'
+                );
+            }
+
+            return ['dominio' => $dominio, 'tipo' => $tipo];
+        }
+
+        if ($ip || str_ends_with($dominio, '.arpa')) {
             throw new InvalidArgumentException(
-                'Tipo DNS não permitido.'
+                'Informe um domínio público válido.'
             );
         }
 
-        if ($tipo === 'PTR' && filter_var($dominio, FILTER_VALIDATE_IP)) {
+        $this->validarDominio($dominio, $tipo);
+
+        return ['dominio' => $dominio, 'tipo' => $tipo];
+    }
+
+    public function consultar(string $dominio, string $tipo): array
+    {
+        $entrada = $this->validarEntrada($dominio, $tipo);
+        $tipo = $entrada['tipo'];
+        $dominio = $entrada['dominio'];
+
+        if ($tipo === 'PTR') {
             if (!filter_var(
                 $dominio,
                 FILTER_VALIDATE_IP,

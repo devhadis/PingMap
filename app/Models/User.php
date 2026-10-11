@@ -34,4 +34,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(\App\Models\Diagnostico::class);
     }
+
+    public function dnsConsultas(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(
+            \App\Models\DnsConsulta::class,
+            'user_id'
+        );
+    }
 }

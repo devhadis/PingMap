@@ -108,4 +108,36 @@ class DnsServiceTest extends TestCase
 
         $servico->consultar('cloudflare.com', 'A');
     }
+
+    public function test_ptr_rejeita_zona_reversa_informada_diretamente(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        (new DnsService())->consultar(
+            '1.0.0.127.in-addr.arpa',
+            'PTR'
+        );
+    }
+
+    public function test_ptr_rejeita_ip_privado(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        (new DnsService())->validarEntrada('192.168.1.1', 'PTR');
+    }
+
+    public function test_validacao_nao_executa_consulta_dns(): void
+    {
+        $servico = new DnsService(
+            resolvedor: fn () => $this->fail(
+                'O resolvedor não deveria ser executado.'
+            )
+        );
+
+        $entrada = $servico->validarEntrada('CLOUDFLARE.COM', 'a');
+
+        $this->assertSame('cloudflare.com', $entrada['dominio']);
+        $this->assertSame('A', $entrada['tipo']);
+    }
+
 }
