@@ -34,4 +34,25 @@ class DnsInterfaceTest extends TestCase
             ->assertOk()
             ->assertSee('form-ping');
     }
+
+    public function test_dashboard_exibe_menu_compartilhado(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertSee('Navegação principal')
+            ->assertSee('DNS Lookup')
+            ->assertSee('form-ping');
+    }
+
+    public function test_dns_exibe_menu_compartilhado(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get('/ferramentas/dns')
+            ->assertOk()
+            ->assertSee('Navegação principal')
+            ->assertSee('Dashboard / Ping')
+            ->assertSee('form-dns');
+    }
+
 }

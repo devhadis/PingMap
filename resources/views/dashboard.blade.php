@@ -83,9 +83,31 @@
         .pm-form button { flex: 1 1 100%; }
         .pm-panel { padding: 15px; }
     }
+    body.dashboard-page {
+        display: block;
+        padding: 0;
+        background: #0b1220;
+    }
+
+    body.dashboard-page > .card {
+        width: 100%;
+        max-width: none;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+    }
+
+    .dashboard-shell {
+        width: 100%;
+    }
 </style>
 
-<div class="dashboard-shell">
+<div class="tools-shell">
+    @include('partials.network_sidebar')
+
+    <div class="tools-content">
+        <div class="dashboard-shell">
     <header class="pm-header">
         <div>
             <h1>PingMap</h1>
@@ -217,6 +239,8 @@
             <button type="submit">Sair da conta</button>
         </form>
     </footer>
+        </div>
+    </div>
 </div>
 
 <script>

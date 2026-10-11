@@ -224,30 +224,7 @@
 </style>
 
 <div class="tools-shell">
-    <aside class="tools-sidebar" aria-label="Navegação principal">
-        <a class="tools-brand" href="{{ route('dashboard') }}">
-            ◈ PingMap
-        </a>
-
-        <div class="tools-group">VISÃO GERAL</div>
-        <a class="tools-link" href="{{ route('dashboard') }}">
-            ◫ Dashboard / Ping
-        </a>
-
-        <div class="tools-group">CONECTIVIDADE</div>
-        <a class="tools-link active"
-           href="{{ route('ferramentas.dns') }}"
-           aria-current="page">
-            ◉ DNS Lookup
-        </a>
-
-        <div class="tools-group">EM DESENVOLVIMENTO</div>
-        <span class="tools-link disabled">TCP / Port Check</span>
-        <span class="tools-link disabled">MTR / Traceroute</span>
-        <span class="tools-link disabled">BGP Lookup</span>
-        <span class="tools-link disabled">HTTP / TLS</span>
-        <span class="tools-link disabled">Monitoramento</span>
-    </aside>
+    @include('partials.network_sidebar')
 
     <main class="tools-content">
         <div class="tools-eyebrow">NETWORK TOOLS / DNS</div>
