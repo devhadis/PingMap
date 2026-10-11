@@ -34,3 +34,5 @@ Thumbs.db
 !.env.example
 *.bak
 *.bak-*
+vendor/
+.env
