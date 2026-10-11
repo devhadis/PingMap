@@ -51,12 +51,18 @@ class PingService
                 'destino' => $destino,
                 'perda_percentual' => null,
                 'latencia_media_ms' => null,
+                'latencia_minima_ms' => null,
+                'latencia_maxima_ms' => null,
+                'jitter_ms' => null,
+                'amostras' => 0,
                 'status' => 'timeout',
             ];
         }
 
         $saida = $dados['saida'];
         $codigo = $dados['codigo'];
+
+        $metricasAvancadas = (new PingMetricsParser())->analisar($saida);
 
         $perda = null;
         $latencia = null;
@@ -87,6 +93,7 @@ class PingService
             'destino' => $destino,
             'perda_percentual' => $perda,
             'latencia_media_ms' => $latencia,
+            ...$metricasAvancadas,
             'status' => $status,
         ];
     }
