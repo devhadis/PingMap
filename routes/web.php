@@ -14,4 +14,6 @@ require __DIR__.'/dns.php';
 
 require __DIR__.'/tcp.php';
 
+require __DIR__.'/traceroute.php';
+
 require __DIR__.'/ferramentas.php';
