@@ -121,6 +121,49 @@ class ExecutarConsultaTracerouteTest extends TestCase
         $this->assertTrue(true);
     }
 
+
+    public function test_job_reserva_consulta_com_atualizacao_condicional(): void
+    {
+        $consulta = $this->criarConsulta();
+
+        $servico = Mockery::mock(TracerouteService::class);
+
+        $servico->shouldReceive('executar')
+            ->once()
+            ->andReturn([]);
+
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+
+        try {
+            (new ExecutarConsultaTraceroute($consulta->id))
+                ->handle($servico);
+
+            $consultas = \Illuminate\Support\Facades\DB::getQueryLog();
+        } finally {
+            \Illuminate\Support\Facades\DB::disableQueryLog();
+            \Illuminate\Support\Facades\DB::flushQueryLog();
+        }
+
+        $atualizacaoCondicional = collect($consultas)
+            ->contains(function (array $consultaSql): bool {
+                $sql = strtolower($consultaSql['query']);
+
+                return str_starts_with($sql, 'update')
+                    && str_contains($sql, 'traceroute_consultas')
+                    && str_contains($sql, 'status')
+                    && in_array(
+                        'pendente',
+                        $consultaSql['bindings'],
+                        true
+                    );
+            });
+
+        $this->assertTrue(
+            $atualizacaoCondicional,
+            'O Job deve reservar a consulta com UPDATE condicional.'
+        );
+    }
+
     public function test_job_possui_limites_de_execucao(): void
     {
         $job = new ExecutarConsultaTraceroute(1);

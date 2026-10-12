@@ -22,15 +22,20 @@ class ExecutarConsultaTraceroute implements ShouldQueue
 
     public function handle(TracerouteService $servico): void
     {
-        $consulta = TracerouteConsulta::find($this->consultaId);
+        $reservadas = TracerouteConsulta::query()
+            ->whereKey($this->consultaId)
+            ->where('status', 'pendente')
+            ->update([
+                'status' => 'executando',
+            ]);
 
-        if (!$consulta || $consulta->status !== 'pendente') {
+        if ($reservadas !== 1) {
             return;
         }
 
-        $consulta->update([
-            'status' => 'executando',
-        ]);
+        $consulta = TracerouteConsulta::findOrFail(
+            $this->consultaId
+        );
 
         try {
             $saltos = $servico->executar($consulta->destino);
