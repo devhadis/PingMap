@@ -480,7 +480,21 @@
         }
     }
 
-    async function carregarHistorico() {
+    function selecionarConsultaInicial(consultas) {
+        if (consultaAtual !== null) {
+            return;
+        }
+
+        const recente = consultas.find(consulta => consulta.status === 'concluido');
+
+        if (!recente) {
+            return;
+        }
+
+        void acompanharConsulta(recente.id);
+    }
+
+    async function carregarHistorico(selecionarInicial = false) {
         try {
             const consultas = await requisitar(api);
             history.replaceChildren();
@@ -510,6 +524,10 @@
                 celula.appendChild(botao);
                 linha.appendChild(celula);
                 history.appendChild(linha);
+            }
+
+            if (selecionarInicial) {
+                selecionarConsultaInicial(consultas);
             }
         } catch (erro) {
             limparTabela(history, 'Não foi possível carregar o histórico.');
@@ -609,7 +627,7 @@
         void carregarHistorico();
     });
 
-    void carregarHistorico();
+    void carregarHistorico(true);
 })();
 </script>
 @endsection

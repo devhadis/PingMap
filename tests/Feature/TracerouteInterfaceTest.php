@@ -100,4 +100,44 @@ class TracerouteInterfaceTest extends TestCase
             ->assertSee('function renderizarGraficoLatencia(', false);
     }
 
+
+    public function test_interface_possui_selecao_automatica_da_consulta_recente(): void
+    {
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->get('/ferramentas/traceroute')
+            ->assertOk()
+            ->assertSee(
+                'function selecionarConsultaInicial(consultas)',
+                false
+            );
+    }
+
+    public function test_selecao_automatica_prioriza_consulta_concluida(): void
+    {
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->get('/ferramentas/traceroute')
+            ->assertOk()
+            ->assertSee(
+                "consultas.find(consulta => consulta.status === 'concluido')",
+                false
+            );
+    }
+
+    public function test_interface_preserva_selecao_manual_ao_atualizar_historico(): void
+    {
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->get('/ferramentas/traceroute')
+            ->assertOk()
+            ->assertSee(
+                'if (consultaAtual !== null)',
+                false
+            );
+    }
+
 }
