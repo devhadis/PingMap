@@ -29,4 +29,24 @@ class CsrfLayoutTest extends TestCase
             ->assertOk()
             ->assertSee('name="_token"', false);
     }
+
+    public function test_pagina_tcp_exibe_meta_tag_csrf(): void
+    {
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->get('/ferramentas/tcp')
+            ->assertOk()
+            ->assertSee('name="csrf-token"', false);
+    }
+
+    public function test_pagina_dns_exibe_meta_tag_csrf(): void
+    {
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->get('/ferramentas/dns')
+            ->assertOk()
+            ->assertSee('name="csrf-token"', false);
+    }
 }
