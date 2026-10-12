@@ -50,4 +50,14 @@ class User extends Authenticatable
             'user_id'
         );
     }
+
+    public function tracerouteConsultas():
+        \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(
+            \App\Models\TracerouteConsulta::class,
+            'user_id'
+        );
+    }
+
 }
