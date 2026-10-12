@@ -177,4 +177,65 @@ class TracerouteConsultaApiTest extends TestCase
             )
             ->assertNotFound();
     }
+
+    public function test_rejeita_destino_ausente(): void
+    {
+        Queue::fake();
+
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->postJson('/api/v1/traceroute/consultas', [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['destino']);
+
+        $this->assertDatabaseCount('traceroute_consultas', 0);
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_historico_retorna_no_maximo_vinte_consultas(): void
+    {
+        $usuario = User::factory()->create();
+
+        for ($i = 0; $i < 25; $i++) {
+            $usuario->tracerouteConsultas()->create([
+                'destino' => '1.1.1.1',
+                'status' => 'concluido',
+            ]);
+        }
+
+        $this->actingAs($usuario)
+            ->getJson('/api/v1/traceroute/consultas')
+            ->assertOk()
+            ->assertJsonCount(20);
+    }
+
+
+    public function test_limita_criacao_a_dez_consultas_por_minuto(): void
+    {
+        Queue::fake();
+
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario);
+
+        for ($i = 0; $i < 10; $i++) {
+            $this->postJson('/api/v1/traceroute/consultas', [
+                'destino' => '1.1.1.1',
+            ])->assertAccepted();
+        }
+
+        $this->postJson('/api/v1/traceroute/consultas', [
+            'destino' => '1.1.1.1',
+        ])->assertStatus(429);
+
+        $this->assertDatabaseCount('traceroute_consultas', 10);
+
+        Queue::assertPushed(
+            ExecutarConsultaTraceroute::class,
+            10
+        );
+    }
+
 }
