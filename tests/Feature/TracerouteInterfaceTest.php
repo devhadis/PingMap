@@ -46,4 +46,26 @@ class TracerouteInterfaceTest extends TestCase
             ->assertOk()
             ->assertSee('name="csrf-token"', false);
     }
+
+    public function test_interface_permite_atualizar_historico(): void
+    {
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->get('/ferramentas/traceroute')
+            ->assertOk()
+            ->assertSee('id="trace-refresh-history"', false)
+            ->assertSee('Atualizar histórico');
+    }
+
+    public function test_interface_nao_aguarda_polling_para_liberar_formulario(): void
+    {
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->get('/ferramentas/traceroute')
+            ->assertOk()
+            ->assertSee('void acompanharConsulta(consulta.id);', false);
+    }
+
 }

@@ -229,6 +229,15 @@
 <section class="trace-panel" aria-labelledby="trace-history-title">
     <h2 id="trace-history-title">Histórico recente</h2>
 
+    <button
+        id="trace-refresh-history"
+        class="trace-button"
+        type="button"
+        style="margin-bottom: 18px;"
+    >
+        Atualizar histórico
+    </button>
+
     <div class="trace-table-wrap">
         <table class="trace-table">
             <thead>
@@ -261,6 +270,7 @@
     const summary = document.getElementById('trace-summary');
     const hops = document.getElementById('trace-hops');
     const history = document.getElementById('trace-history');
+    const refreshHistory = document.getElementById('trace-refresh-history');
 
     let consultaAtual = null;
 
@@ -458,7 +468,7 @@
             });
 
             await carregarHistorico();
-            await acompanharConsulta(consulta.id);
+            void acompanharConsulta(consulta.id);
         } catch (erro) {
             mensagem(`Falha ao iniciar consulta: ${erro.message}`);
         } finally {
@@ -466,7 +476,11 @@
         }
     });
 
-    carregarHistorico();
+    refreshHistory.addEventListener('click', () => {
+        void carregarHistorico();
+    });
+
+    void carregarHistorico();
 })();
 </script>
 @endsection
