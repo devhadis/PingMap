@@ -4,6 +4,7 @@ RUN apt-get update && apt-get install -y \
     git \
     unzip \
     iputils-ping \
+    traceroute \
     libpq-dev \
     libzip-dev \
     libicu-dev \
