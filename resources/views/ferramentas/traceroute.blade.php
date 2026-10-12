@@ -158,6 +158,53 @@
             font-size: 27px;
         }
     }
+
+    /* Sprint 18: gráfico de latência por salto */
+    .trace-chart {
+        display: grid;
+        gap: 12px;
+        margin: 18px 0 26px;
+    }
+
+    .trace-chart-row {
+        display: grid;
+        grid-template-columns: 75px minmax(0, 1fr) 110px;
+        gap: 12px;
+        align-items: center;
+        color: #cbd5e1;
+        font-size: 13px;
+    }
+
+    .trace-chart-track {
+        height: 12px;
+        background: #0b1220;
+        border: 1px solid #293548;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .trace-chart-bar {
+        height: 100%;
+        background: #0ea5e9;
+        border-radius: 8px;
+    }
+
+    .trace-chart-timeout {
+        color: #fbbf24;
+    }
+
+    .trace-chart-value {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    @media (max-width: 600px) {
+        .trace-chart-row {
+            grid-template-columns: 48px minmax(0, 1fr) 90px;
+            gap: 8px;
+            font-size: 11px;
+        }
+    }
 </style>
 
 <div class="trace-eyebrow">NETWORK INTELLIGENCE / DIAGNÓSTICO</div>
@@ -205,6 +252,17 @@
     <p id="trace-summary" class="trace-summary">
         Nenhuma consulta selecionada.
     </p>
+
+    <h3 id="trace-latency-title">Latência por salto</h3>
+
+    <div
+        id="trace-latency-chart"
+        class="trace-chart"
+        role="list"
+        aria-labelledby="trace-latency-title"
+    >
+        <p class="trace-muted">Execute uma consulta para visualizar o gráfico.</p>
+    </div>
 
     <div class="trace-table-wrap">
         <table class="trace-table">
@@ -269,6 +327,7 @@
     const status = document.getElementById('trace-status');
     const summary = document.getElementById('trace-summary');
     const hops = document.getElementById('trace-hops');
+    const latencyChart = document.getElementById('trace-latency-chart');
     const history = document.getElementById('trace-history');
     const refreshHistory = document.getElementById('trace-refresh-history');
 
@@ -319,6 +378,75 @@
         return dados;
     }
 
+    function renderizarGraficoLatencia(lista) {
+        latencyChart.replaceChildren();
+
+        if (lista.length === 0) {
+            const vazio = document.createElement('p');
+            vazio.className = 'trace-muted';
+            vazio.textContent = 'Nenhuma latência disponível.';
+            latencyChart.appendChild(vazio);
+            return;
+        }
+
+        const latencias = lista
+            .map(salto => salto.latencia_ms)
+            .filter(valor =>
+                valor !== null &&
+                valor !== undefined &&
+                Number.isFinite(Number(valor)) &&
+                Number(valor) >= 0
+            )
+            .map(Number);
+
+        const maiorLatencia = Math.max(0, ...latencias);
+
+        for (const salto of lista) {
+            const linha = document.createElement('div');
+            linha.className = 'trace-chart-row';
+            linha.setAttribute('role', 'listitem');
+
+            const numero = document.createElement('span');
+            numero.textContent = `#${salto.salto ?? '-'}`;
+
+            const trilha = document.createElement('div');
+            trilha.className = 'trace-chart-track';
+
+            const valor = Number(salto.latencia_ms);
+            const valido =
+                salto.latencia_ms !== null &&
+                salto.latencia_ms !== undefined &&
+                Number.isFinite(valor) &&
+                valor >= 0;
+
+            const rotulo = document.createElement('span');
+            rotulo.className = 'trace-chart-value';
+
+            if (valido) {
+                const barra = document.createElement('div');
+                barra.className = 'trace-chart-bar';
+
+                const percentual = maiorLatencia > 0
+                    ? (valor / maiorLatencia) * 100
+                    : 0;
+
+                barra.style.width = `${percentual}%`;
+                trilha.appendChild(barra);
+
+                rotulo.textContent = `${valor.toFixed(3)} ms`;
+            } else {
+                rotulo.textContent = 'Sem resposta';
+                rotulo.classList.add('trace-chart-timeout');
+            }
+
+            linha.appendChild(numero);
+            linha.appendChild(trilha);
+            linha.appendChild(rotulo);
+
+            latencyChart.appendChild(linha);
+        }
+    }
+
     function renderizarSaltos(consulta) {
         const lista = Array.isArray(consulta.saltos)
             ? consulta.saltos
@@ -330,6 +458,7 @@
             `Saltos: ${lista.length}`;
 
         hops.replaceChildren();
+        renderizarGraficoLatencia(lista);
 
         if (lista.length === 0) {
             limparTabela(hops, 'Nenhum salto disponível.');

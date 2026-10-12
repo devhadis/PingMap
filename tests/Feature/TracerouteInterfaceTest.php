@@ -68,4 +68,36 @@ class TracerouteInterfaceTest extends TestCase
             ->assertSee('void acompanharConsulta(consulta.id);', false);
     }
 
+
+    public function test_interface_exibe_grafico_de_latencia(): void
+    {
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->get('/ferramentas/traceroute')
+            ->assertOk()
+            ->assertSee('id="trace-latency-chart"', false);
+    }
+
+    public function test_grafico_possui_titulo_acessivel(): void
+    {
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->get('/ferramentas/traceroute')
+            ->assertOk()
+            ->assertSee('id="trace-latency-title"', false)
+            ->assertSee('Latência por salto');
+    }
+
+    public function test_interface_possui_renderizacao_do_grafico(): void
+    {
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->get('/ferramentas/traceroute')
+            ->assertOk()
+            ->assertSee('function renderizarGraficoLatencia(', false);
+    }
+
 }
