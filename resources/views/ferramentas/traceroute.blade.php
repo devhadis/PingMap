@@ -341,7 +341,8 @@
     </div>
 </section>
 
-<script>
+<script type="module">
+import { calcularIndicadoresRota } from "/js/traceroute-indicadores.js";
 (() => {
     'use strict';
 
@@ -478,28 +479,20 @@
     }
 
     function atualizarIndicadoresRota(consulta, lista) {
-        const respondeu = salto =>
-            salto.ip != null &&
-            salto.latencia_ms != null &&
-            Number.isFinite(Number(salto.latencia_ms)) &&
-            Number(salto.latencia_ms) >= 0;
+        const indicadores = calcularIndicadoresRota({
+            ...consulta,
+            saltos: lista
+        });
 
-        const quantidadeRespondidos = lista.filter(respondeu).length;
-        const quantidadeSemResposta = lista.length - quantidadeRespondidos;
+        respondidos.textContent = String(indicadores.respondidos);
+        semResposta.textContent = String(indicadores.semResposta);
 
-        const destino = lista.find(salto =>
-            salto.ip === consulta.destino && respondeu(salto)
-        );
-
-        respondidos.textContent = String(quantidadeRespondidos);
-        semResposta.textContent = String(quantidadeSemResposta);
-
-        destinoAlcancado.textContent = destino
+        destinoAlcancado.textContent = indicadores.destinoAlcancado
             ? 'Sim'
             : 'Não confirmado';
 
-        latenciaDestino.textContent = destino
-            ? `${Number(destino.latencia_ms).toFixed(3)} ms`
+        latenciaDestino.textContent = indicadores.latenciaDestino !== null
+            ? `${indicadores.latenciaDestino.toFixed(3)} ms`
             : '—';
     }
 
