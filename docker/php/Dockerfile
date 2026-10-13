@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     iputils-ping \
     traceroute \
+    mtr-tiny \
     libpq-dev \
     libzip-dev \
     libicu-dev \
