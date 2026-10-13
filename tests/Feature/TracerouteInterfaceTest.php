@@ -140,4 +140,39 @@ class TracerouteInterfaceTest extends TestCase
             );
     }
 
+
+    public function test_interface_exibe_indicadores_da_rota(): void
+    {
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->get('/ferramentas/traceroute')
+            ->assertOk()
+            ->assertSee('id="trace-respondidos"', false)
+            ->assertSee('id="trace-sem-resposta"', false)
+            ->assertSee('id="trace-destino-alcancado"', false)
+            ->assertSee('id="trace-latencia-destino"', false);
+    }
+
+    public function test_interface_possui_calculo_dos_indicadores(): void
+    {
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->get('/ferramentas/traceroute')
+            ->assertOk()
+            ->assertSee('function atualizarIndicadoresRota(', false);
+    }
+
+    public function test_interface_diferencia_ausencia_de_resposta(): void
+    {
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->get('/ferramentas/traceroute')
+            ->assertOk()
+            ->assertSee('Sem resposta não significa perda de pacotes');
+    }
+
+
 }

@@ -253,6 +253,31 @@
         Nenhuma consulta selecionada.
     </p>
 
+    <div class="trace-indicators" aria-label="Indicadores da rota"
+         style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:20px 0;">
+        <div class="trace-panel">
+            <strong>Saltos com resposta</strong>
+            <p id="trace-respondidos">—</p>
+        </div>
+        <div class="trace-panel">
+            <strong>Saltos sem resposta</strong>
+            <p id="trace-sem-resposta">—</p>
+        </div>
+        <div class="trace-panel">
+            <strong>Destino alcançado</strong>
+            <p id="trace-destino-alcancado">—</p>
+        </div>
+        <div class="trace-panel">
+            <strong>Latência do destino</strong>
+            <p id="trace-latencia-destino">—</p>
+        </div>
+    </div>
+
+    <p class="trace-muted">
+        Sem resposta não significa perda de pacotes.
+        Alguns roteadores não respondem às sondagens do Traceroute.
+    </p>
+
     <h3 id="trace-latency-title">Latência por salto</h3>
 
     <div
@@ -330,6 +355,11 @@
     const latencyChart = document.getElementById('trace-latency-chart');
     const history = document.getElementById('trace-history');
     const refreshHistory = document.getElementById('trace-refresh-history');
+
+    const respondidos = document.getElementById('trace-respondidos');
+    const semResposta = document.getElementById('trace-sem-resposta');
+    const destinoAlcancado = document.getElementById('trace-destino-alcancado');
+    const latenciaDestino = document.getElementById('trace-latencia-destino');
 
     let consultaAtual = null;
 
@@ -447,6 +477,32 @@
         }
     }
 
+    function atualizarIndicadoresRota(consulta, lista) {
+        const respondeu = salto =>
+            salto.ip != null &&
+            salto.latencia_ms != null &&
+            Number.isFinite(Number(salto.latencia_ms)) &&
+            Number(salto.latencia_ms) >= 0;
+
+        const quantidadeRespondidos = lista.filter(respondeu).length;
+        const quantidadeSemResposta = lista.length - quantidadeRespondidos;
+
+        const destino = lista.find(salto =>
+            salto.ip === consulta.destino && respondeu(salto)
+        );
+
+        respondidos.textContent = String(quantidadeRespondidos);
+        semResposta.textContent = String(quantidadeSemResposta);
+
+        destinoAlcancado.textContent = destino
+            ? 'Sim'
+            : 'Não confirmado';
+
+        latenciaDestino.textContent = destino
+            ? `${Number(destino.latencia_ms).toFixed(3)} ms`
+            : '—';
+    }
+
     function renderizarSaltos(consulta) {
         const lista = Array.isArray(consulta.saltos)
             ? consulta.saltos
@@ -458,6 +514,7 @@
             `Saltos: ${lista.length}`;
 
         hops.replaceChildren();
+        atualizarIndicadoresRota(consulta, lista);
         renderizarGraficoLatencia(lista);
 
         if (lista.length === 0) {
