@@ -354,6 +354,7 @@
 
 <script type="module">
 import { calcularIndicadoresMtr } from "/js/mtr-indicadores.js";
+import { criarControleMtr } from "/js/mtr-controle.js";
 (() => {
     'use strict';
 
@@ -367,7 +368,7 @@ import { calcularIndicadoresMtr } from "/js/mtr-indicadores.js";
     const history = document.getElementById('mtr-history');
     const chart = document.getElementById('mtr-latency-chart');
 
-    let consultaAtual = null;
+    const controle = criarControleMtr();
 
     function mensagem(texto) {
         status.textContent = texto;
@@ -540,8 +541,11 @@ import { calcularIndicadoresMtr } from "/js/mtr-indicadores.js";
     }
 
     async function carregarHistorico(selecionarInicial = false) {
+        const versao = controle.iniciarHistorico();
         try {
             const consultas = await requisitar(api);
+
+            if (!controle.historicoEstaAtual(versao)) return;
 
             if (!Array.isArray(consultas) || consultas.length === 0) {
                 limparTabela(history, 'Nenhuma consulta anterior.', 3);
@@ -571,7 +575,7 @@ import { calcularIndicadoresMtr } from "/js/mtr-indicadores.js";
                 history.appendChild(linha);
             }
 
-            if (selecionarInicial && consultaAtual === null) {
+            if (selecionarInicial && controle.consultaAtual() === null) {
                 const recente = consultas.find(
                     consulta => consulta.status === 'concluido'
                 );
@@ -581,21 +585,22 @@ import { calcularIndicadoresMtr } from "/js/mtr-indicadores.js";
                 }
             }
         } catch {
+            if (!controle.historicoEstaAtual(versao)) return;
             limparTabela(history, 'Erro ao carregar histórico.', 3);
         }
     }
 
     async function acompanharConsulta(id) {
-        consultaAtual = id;
+        controle.selecionarConsulta(id);
         mensagem(`Consultando resultado #${id}...`);
 
         for (let tentativa = 0; tentativa < 30; tentativa++) {
-            if (consultaAtual !== id) return;
+            if (!controle.consultaEstaAtiva(id)) return;
 
             try {
                 const consulta = await requisitar(`${api}/${id}`);
 
-                if (consultaAtual !== id) return;
+                if (!controle.consultaEstaAtiva(id)) return;
 
                 if (consulta.status === 'concluido') {
                     renderizarSaltos(consulta);
@@ -613,7 +618,7 @@ import { calcularIndicadoresMtr } from "/js/mtr-indicadores.js";
 
                 mensagem(`Consulta #${id}: ${consulta.status}. Aguardando...`);
             } catch {
-                if (consultaAtual === id) {
+                if (controle.consultaEstaAtiva(id)) {
                     mensagem('Erro ao consultar o resultado.');
                 }
                 return;
@@ -622,7 +627,7 @@ import { calcularIndicadoresMtr } from "/js/mtr-indicadores.js";
             await new Promise(resolve => setTimeout(resolve, 1500));
         }
 
-        if (consultaAtual === id) {
+        if (controle.consultaEstaAtiva(id)) {
             mensagem('A consulta continua em processamento. Atualize o histórico.');
         }
     }
