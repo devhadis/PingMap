@@ -121,6 +121,14 @@
         ◉ Traceroute
     </a>
 
+    <a
+        class="pm-nav-link {{ request()->routeIs('ferramentas.mtr') ? 'active' : '' }}"
+        href="{{ route('ferramentas.mtr') }}"
+        @if(request()->routeIs('ferramentas.mtr')) aria-current="page" @endif
+    >
+        ◉ MTR / Network Analysis
+    </a>
+
     <div class="pm-nav-group">EM DESENVOLVIMENTO</div>
     <span class="pm-nav-link disabled">BGP Lookup</span>
     <span class="pm-nav-link disabled">HTTP / TLS</span>

@@ -10,4 +10,6 @@ Route::middleware('auth')->group(function () {
         ->name('ferramentas.tcp');
     Route::view('/ferramentas/traceroute', 'ferramentas.traceroute')
         ->name('ferramentas.traceroute');
+    Route::view('/ferramentas/mtr', 'ferramentas.mtr')
+        ->name('ferramentas.mtr');
 });
