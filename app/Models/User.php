@@ -60,4 +60,15 @@ class User extends Authenticatable
         );
     }
 
+
+    public function mtrConsultas():
+        \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(
+            \App\Models\MtrConsulta::class,
+            'user_id'
+        );
+    }
+
+
 }
