@@ -102,7 +102,7 @@ class GeoIpSaltosApiTest extends TestCase
 
         $this->actingAs($usuario)->getJson(
             "/api/v1/traceroute/consultas/{$consulta->id}/geo"
-        )->assertStatus(501);
+        )->assertStatus(202)->assertJsonPath('status', 'pendente');
     }
 
     public function test_proprietario_acessa_geo_mtr_concluido(): void
@@ -119,7 +119,7 @@ class GeoIpSaltosApiTest extends TestCase
 
         $this->actingAs($usuario)->getJson(
             "/api/v1/mtr/consultas/{$consulta->id}/geo"
-        )->assertStatus(501);
+        )->assertStatus(202)->assertJsonPath('status', 'pendente');
     }
 
 }
