@@ -145,4 +145,46 @@ class TcpConsultaApiTest extends TestCase
             ->assertJsonPath('destino', '1.1.1.1')
             ->assertJsonPath('status', 'conectado');
     }
+
+    public function test_usuario_cria_consulta_tcp_ipv6(): void
+    {
+        Queue::fake();
+
+        $usuario = User::factory()->create();
+        $destino = '2606:4700:4700::1111';
+
+        $this->actingAs($usuario)
+            ->postJson('/api/v1/tcp/consultas', [
+                'destino' => $destino,
+                'porta' => 443,
+            ])
+            ->assertStatus(202)
+            ->assertJsonPath('destino', $destino)
+            ->assertJsonPath('status', 'pendente');
+
+        $this->assertDatabaseHas('tcp_consultas', [
+            'user_id' => $usuario->id,
+            'destino' => $destino,
+            'porta' => 443,
+            'status' => 'pendente',
+        ]);
+
+        Queue::assertPushed(ExecutarConsultaTcp::class, 1);
+    }
+
+    public function test_api_rejeita_ipv6_privado(): void
+    {
+        Queue::fake();
+
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->postJson('/api/v1/tcp/consultas', [
+                'destino' => 'fc00::1',
+                'porta' => 443,
+            ])
+            ->assertStatus(422);
+
+        Queue::assertNothingPushed();
+    }
 }

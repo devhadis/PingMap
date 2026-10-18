@@ -10,10 +10,10 @@ use Throwable;
 class PingMapTcp extends Command
 {
     protected $signature = 'pingmap:tcp
-        {destino : Endereço IPv4 público}
+        {destino : Endereço IPv4 ou IPv6 público}
         {porta : Porta TCP autorizada}';
 
-    protected $description = 'Verifica conectividade TCP com IP público';
+    protected $description = 'Verifica conectividade TCP com IPv4 ou IPv6 público';
 
     public function handle(TcpService $tcp): int
     {

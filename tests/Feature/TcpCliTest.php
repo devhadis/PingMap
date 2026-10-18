@@ -70,4 +70,26 @@ class TcpCliTest extends TestCase
             'porta' => '443abc',
         ])->assertExitCode(1);
     }
+
+    public function test_cli_tcp_encaminha_ipv6_publico(): void
+    {
+        $destino = '2606:4700:4700::1111';
+
+        $this->mock(TcpService::class)
+            ->shouldReceive('verificar')
+            ->once()
+            ->with($destino, 443)
+            ->andReturn([
+                'destino' => $destino,
+                'porta' => 443,
+                'protocolo' => 'TCP',
+                'status' => 'conectado',
+                'tempo_ms' => 15.0,
+            ]);
+
+        $this->artisan('pingmap:tcp', [
+            'destino' => $destino,
+            'porta' => '443',
+        ])->assertExitCode(0);
+    }
 }
