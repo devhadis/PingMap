@@ -125,3 +125,47 @@ test('utiliza latência média do MTR quando disponível', () => {
 
     assert.equal(pontos[0].latencia_ms, 23.456);
 });
+
+test('mapa dual-stack preserva IPv4 e IPv6 geolocalizados', () => {
+    const saltos = [
+        {
+            salto: 1,
+            ip: 'fe80::1',
+            geo: null
+        },
+        {
+            salto: 2,
+            ip: '2606:4700:4700::1111',
+            media_ms: 20.5,
+            geo: {
+                latitude: -33.86,
+                longitude: 151.20,
+                cidade: 'Sydney',
+                pais: 'Australia'
+            }
+        },
+        {
+            salto: 3,
+            ip: '1.1.1.1',
+            latencia_ms: 25.0,
+            geo: {
+                latitude: -27.47,
+                longitude: 153.03,
+                cidade: 'Brisbane',
+                pais: 'Australia'
+            }
+        }
+    ];
+
+    const pontos = prepararPontosMapa(saltos);
+
+    assert.equal(pontos.length, 2);
+
+    assert.deepEqual(
+        pontos.map(ponto => ponto.ip),
+        ['2606:4700:4700::1111', '1.1.1.1']
+    );
+
+    assert.equal(pontos[0].latencia_ms, 20.5);
+    assert.equal(pontos[1].latencia_ms, 25.0);
+});
