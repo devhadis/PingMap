@@ -19,16 +19,20 @@ class PingService
             throw new InvalidArgumentException('Destino inválido.');
         }
 
-        if (filter_var(
-            $destino,
-            FILTER_VALIDATE_IP,
-            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
-        ) === false) {
-            throw new InvalidArgumentException('Destino não permitido.');
+        try {
+            (new EnderecoIpPublico())->validar($destino);
+        } catch (InvalidArgumentException $e) {
+            throw new InvalidArgumentException('Destino não permitido.', 0, $e);
         }
 
+        $familia = filter_var(
+            $destino,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_IPV6
+        ) !== false ? '-6' : '-4';
+
         $processo = new Process(
-            ['/usr/bin/ping', '-n', '-c', '3', '-W', '2', '--', $destino],
+            ['/usr/bin/ping', $familia, '-n', '-c', '3', '-W', '2', '--', $destino],
             null,
             ['LC_ALL' => 'C']
         );
