@@ -119,4 +119,35 @@ class MtrCliTest extends TestCase
             ->expectsOutput('Não foi possível executar o MTR.')
             ->assertExitCode(1);
     }
+
+    public function test_cli_executa_mtr_ipv6(): void
+    {
+        $destino = '2606:4700:4700::1111';
+
+        $servico = $this->mock(\App\Services\MtrService::class);
+
+        $servico->shouldReceive('validarDestino')
+            ->once()
+            ->with($destino)
+            ->andReturn($destino);
+
+        $servico->shouldReceive('executar')
+            ->once()
+            ->with($destino)
+            ->andReturn([
+                [
+                    'salto' => 1,
+                    'ip' => $destino,
+                    'enviados' => 3,
+                    'perda_pct' => 0.0,
+                    'media_ms' => 12.5,
+                    'melhor_ms' => 11.0,
+                    'pior_ms' => 14.0,
+                ],
+            ]);
+
+        $this->artisan('pingmap:mtr', [
+            'destino' => $destino,
+        ])->assertExitCode(0);
+    }
 }

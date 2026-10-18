@@ -43,6 +43,7 @@ class MtrServiceTest extends TestCase
         $this->assertSame(
             [
                 '/usr/bin/mtr',
+                '-4',
                 '--report',
                 '--json',
                 '--no-dns',

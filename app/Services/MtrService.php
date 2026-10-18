@@ -21,8 +21,15 @@ class MtrService
     {
         $destino = $this->validarDestino($destino);
 
+        $familia = filter_var(
+            $destino,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_IPV6
+        ) !== false ? '-6' : '-4';
+
         return [
             '/usr/bin/mtr',
+            $familia,
             '--report',
             '--json',
             '--no-dns',
@@ -65,7 +72,7 @@ class MtrService
             $host = $hub['host'] ?? null;
 
             $ip = is_string($host)
-                && filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
+                && filter_var($host, FILTER_VALIDATE_IP)
                     ? $host
                     : null;
 

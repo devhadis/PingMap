@@ -8,9 +8,9 @@ use Throwable;
 
 class PingMapMtr extends Command
 {
-    protected $signature = 'pingmap:mtr {destino : Endereço IPv4 público}';
+    protected $signature = 'pingmap:mtr {destino : Endereço IPv4 ou IPv6 público}';
 
-    protected $description = 'Executa MTR seguro para um IPv4 público';
+    protected $description = 'Executa MTR seguro para um IPv4 ou IPv6 público';
 
     public function handle(MtrService $servico): int
     {

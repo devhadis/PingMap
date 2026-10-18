@@ -23,7 +23,7 @@ class MtrConsultaController extends Controller
             $mtr->validarDestino($dados['destino']);
         } catch (InvalidArgumentException $e) {
             return response()->json([
-                'message' => 'Destino IPv4 público inválido.',
+                'message' => 'Destino IPv4 ou IPv6 público inválido.',
             ], 422);
         }
 
