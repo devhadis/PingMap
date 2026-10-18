@@ -307,6 +307,34 @@
             </tbody>
         </table>
     </div>
+
+    <section aria-labelledby="trace-geo-title"
+             style="margin-top:24px;">
+        <h3 id="trace-geo-title">
+            Mapa geográfico dos saltos
+        </h3>
+
+        <p class="trace-muted">
+            Geolocalização aproximada.
+            A posição dos roteadores é estimada por GeoIP
+            e não representa o caminho físico comprovado
+            dos pacotes.
+        </p>
+
+        <p id="trace-geo-status"
+           class="trace-muted"
+           role="status"
+           aria-live="polite">
+            Selecione uma consulta concluída para visualizar o mapa.
+        </p>
+
+        <div id="trace-geo-map"
+             style="height:380px;min-height:300px;
+                    border-radius:12px;overflow:hidden;"
+             aria-label="Mapa dos saltos geolocalizados">
+        </div>
+    </section>
+
 </section>
 
 <section class="trace-panel" aria-labelledby="trace-history-title">
@@ -342,8 +370,14 @@
 </section>
 
 <script type="module">
+import { iniciarMapaGeo } from '/js/mapa-interface.js';
 import { calcularIndicadoresRota } from "/js/traceroute-indicadores.js";
 (() => {
+    const mapaGeo = iniciarMapaGeo({
+        tipo: 'traceroute',
+        elementoId: 'trace-geo-map',
+        statusId: 'trace-geo-status'
+    });
     'use strict';
 
     const api = '/api/v1/traceroute/consultas';
@@ -585,6 +619,7 @@ import { calcularIndicadoresRota } from "/js/traceroute-indicadores.js";
     }
 
     async function acompanharConsulta(id) {
+        mapaGeo.limpar();
         consultaAtual = id;
         mensagem(`Consultando resultado #${id}...`);
 
@@ -602,6 +637,7 @@ import { calcularIndicadoresRota } from "/js/traceroute-indicadores.js";
 
                 if (consulta.status === 'concluido') {
                     renderizarSaltos(consulta);
+                    mapaGeo.mostrarConsulta(consulta);
                     mensagem(`Consulta #${id} concluída.`);
                     await carregarHistorico();
                     return;
@@ -681,3 +717,12 @@ import { calcularIndicadoresRota } from "/js/traceroute-indicadores.js";
 })();
 </script>
 @endsection
+
+
+@push('styles')
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+@endpush
+
+@push('scripts')
+<script src="/vendor/leaflet/leaflet.js"></script>
+@endpush

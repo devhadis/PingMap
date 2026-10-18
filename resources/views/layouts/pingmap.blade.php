@@ -69,10 +69,12 @@
             }
         }
     </style>
+    @stack('styles')
 </head>
 <body class="@yield('body_class')">
     <main class="card">
         @yield('content')
     </main>
+    @stack('scripts')
 </body>
 </html>

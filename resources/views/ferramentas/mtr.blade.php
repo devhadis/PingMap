@@ -320,6 +320,34 @@
             </tbody>
         </table>
     </div>
+
+    <section aria-labelledby="mtr-geo-title"
+             style="margin-top:24px;">
+        <h3 id="mtr-geo-title">
+            Mapa geográfico dos saltos
+        </h3>
+
+        <p class="mtr-muted">
+            Geolocalização aproximada.
+            A posição dos roteadores é estimada por GeoIP
+            e não representa o caminho físico comprovado
+            dos pacotes.
+        </p>
+
+        <p id="mtr-geo-status"
+           class="mtr-muted"
+           role="status"
+           aria-live="polite">
+            Selecione uma consulta concluída para visualizar o mapa.
+        </p>
+
+        <div id="mtr-geo-map"
+             style="height:380px;min-height:300px;
+                    border-radius:12px;overflow:hidden;"
+             aria-label="Mapa dos saltos geolocalizados">
+        </div>
+    </section>
+
 </section>
 
 <section class="mtr-panel" aria-labelledby="mtr-history-title">
@@ -353,9 +381,15 @@
 </section>
 
 <script type="module">
+import { iniciarMapaGeo } from '/js/mapa-interface.js';
 import { calcularIndicadoresMtr } from "/js/mtr-indicadores.js";
 import { criarControleMtr } from "/js/mtr-controle.js";
 (() => {
+    const mapaGeo = iniciarMapaGeo({
+        tipo: 'mtr',
+        elementoId: 'mtr-geo-map',
+        statusId: 'mtr-geo-status'
+    });
     'use strict';
 
     const api = '/api/v1/mtr/consultas';
@@ -591,6 +625,7 @@ import { criarControleMtr } from "/js/mtr-controle.js";
     }
 
     async function acompanharConsulta(id) {
+        mapaGeo.limpar();
         controle.selecionarConsulta(id);
         mensagem(`Consultando resultado #${id}...`);
 
@@ -604,6 +639,7 @@ import { criarControleMtr } from "/js/mtr-controle.js";
 
                 if (consulta.status === 'concluido') {
                     renderizarSaltos(consulta);
+                    mapaGeo.mostrarConsulta(consulta);
                     mensagem(`Consulta #${id} concluída.`);
                     void carregarHistorico();
                     return;
@@ -669,3 +705,12 @@ import { criarControleMtr } from "/js/mtr-controle.js";
 })();
 </script>
 @endsection
+
+
+@push('styles')
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+@endpush
+
+@push('scripts')
+<script src="/vendor/leaflet/leaflet.js"></script>
+@endpush
