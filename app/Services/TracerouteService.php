@@ -6,80 +6,24 @@ use InvalidArgumentException;
 
 class TracerouteService
 {
-    private const FAIXAS_BLOQUEADAS = [
-        '0.0.0.0/8',
-        '10.0.0.0/8',
-        '100.64.0.0/10',
-        '127.0.0.0/8',
-        '169.254.0.0/16',
-        '172.16.0.0/12',
-        '192.0.0.0/24',
-        '192.0.2.0/24',
-        '192.168.0.0/16',
-        '198.18.0.0/15',
-        '198.51.100.0/24',
-        '203.0.113.0/24',
-        '224.0.0.0/4',
-        '240.0.0.0/4',
-    ];
-
     public function validarDestino(string $destino): string
     {
-        $valido = filter_var(
-            $destino,
-            FILTER_VALIDATE_IP,
-            FILTER_FLAG_IPV4 | FILTER_FLAG_GLOBAL_RANGE
-        );
-
-        if ($valido === false) {
-            throw new InvalidArgumentException(
-                'O destino deve ser um endereço IPv4 público válido.'
-            );
-        }
-
-        foreach (self::FAIXAS_BLOQUEADAS as $faixa) {
-            if ($this->pertenceAFaixa($destino, $faixa)) {
-                throw new InvalidArgumentException(
-                    'O destino pertence a uma faixa de IP não permitida.'
-                );
-            }
-        }
-
-        return $destino;
-    }
-
-    private function pertenceAFaixa(string $ip, string $cidr): bool
-    {
-        [$rede, $prefixo] = explode('/', $cidr);
-
-        $ipBinario = inet_pton($ip);
-        $redeBinaria = inet_pton($rede);
-
-        $bits = (int) $prefixo;
-        $bytes = intdiv($bits, 8);
-        $restante = $bits % 8;
-
-        if (substr($ipBinario, 0, $bytes) !== substr($redeBinaria, 0, $bytes)) {
-            return false;
-        }
-
-        if ($restante === 0) {
-            return true;
-        }
-
-        $mascara = (0xFF << (8 - $restante)) & 0xFF;
-
-        return (ord($ipBinario[$bytes]) & $mascara)
-            === (ord($redeBinaria[$bytes]) & $mascara);
+        return (new EnderecoIpPublico())->validar($destino);
     }
 
     public function montarComando(string $destino): array
     {
         $destino = $this->validarDestino($destino);
 
+        $familia = filter_var(
+            $destino,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_IPV6
+        ) !== false ? '-6' : '-4';
+
         return [
             '/usr/bin/traceroute',
-            '-4',
+            $familia,
             '-n',
             '-m',
             '12',
@@ -119,14 +63,14 @@ class TracerouteService
             }
 
             if (!preg_match(
-                '/^(\d{1,3}(?:\.\d{1,3}){3})\s+(\d+(?:\.\d+)?)\s+ms\b/',
+                '/^(\S+)\s+(\d+(?:\.\d+)?)\s+ms\b/',
                 $conteudo,
                 $dados
             )) {
                 continue;
             }
 
-            if (filter_var($dados[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
+            if (filter_var($dados[1], FILTER_VALIDATE_IP) === false) {
                 continue;
             }
 

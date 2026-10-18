@@ -119,4 +119,31 @@ class TracerouteCliTest extends TestCase
             'destino' => '1.1.1.1',
         ])->assertExitCode(1);
     }
+
+    public function test_cli_executa_traceroute_ipv6(): void
+    {
+        $destino = '2606:4700:4700::1111';
+
+        $this->mock(\App\Services\TracerouteService::class)
+            ->shouldReceive('validarDestino')
+            ->once()
+            ->with($destino)
+            ->andReturn($destino);
+
+        $this->app->make(\App\Services\TracerouteService::class)
+            ->shouldReceive('executar')
+            ->once()
+            ->with($destino)
+            ->andReturn([
+                [
+                    'salto' => 1,
+                    'ip' => $destino,
+                    'latencia_ms' => 12.5,
+                ],
+            ]);
+
+        $this->artisan('pingmap:traceroute', [
+            'destino' => $destino,
+        ])->assertExitCode(0);
+    }
 }

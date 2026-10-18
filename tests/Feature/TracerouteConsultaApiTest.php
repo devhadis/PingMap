@@ -238,4 +238,46 @@ class TracerouteConsultaApiTest extends TestCase
         );
     }
 
+
+    public function test_usuario_cria_consulta_traceroute_ipv6(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+
+        $usuario = \App\Models\User::factory()->create();
+        $destino = '2606:4700:4700::1111';
+
+        $this->actingAs($usuario)
+            ->postJson('/api/v1/traceroute/consultas', [
+                'destino' => $destino,
+            ])
+            ->assertStatus(202)
+            ->assertJsonPath('destino', $destino)
+            ->assertJsonPath('status', 'pendente');
+
+        $this->assertDatabaseHas('traceroute_consultas', [
+            'user_id' => $usuario->id,
+            'destino' => $destino,
+            'status' => 'pendente',
+        ]);
+
+        \Illuminate\Support\Facades\Queue::assertPushed(
+            \App\Jobs\ExecutarConsultaTraceroute::class,
+            1
+        );
+    }
+
+    public function test_api_rejeita_ipv6_privado(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+
+        $usuario = \App\Models\User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->postJson('/api/v1/traceroute/consultas', [
+                'destino' => 'fc00::1',
+            ])
+            ->assertStatus(422);
+
+        \Illuminate\Support\Facades\Queue::assertNothingPushed();
+    }
 }

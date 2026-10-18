@@ -8,9 +8,9 @@ use Throwable;
 
 class PingMapTraceroute extends Command
 {
-    protected $signature = 'pingmap:traceroute {destino : Endereço IPv4 público}';
+    protected $signature = 'pingmap:traceroute {destino : Endereço IPv4 ou IPv6 público}';
 
-    protected $description = 'Executa traceroute seguro para um endereço IPv4 público';
+    protected $description = 'Executa traceroute seguro para um endereço IPv4 ou IPv6 público';
 
     public function handle(TracerouteService $servico): int
     {
