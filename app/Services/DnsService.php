@@ -29,13 +29,11 @@ class DnsService
         $ip = filter_var($dominio, FILTER_VALIDATE_IP);
 
         if ($tipo === 'PTR') {
-            if (!$ip || !filter_var(
-                $dominio,
-                FILTER_VALIDATE_IP,
-                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
-            )) {
+            try {
+                (new EnderecoIpPublico())->validar($dominio);
+            } catch (InvalidArgumentException $erro) {
                 throw new InvalidArgumentException(
-                    'PTR exige um endereço IP público.'
+                    'PTR exige um endereço IP público permitido.'
                 );
             }
 
@@ -60,16 +58,6 @@ class DnsService
         $dominio = $entrada['dominio'];
 
         if ($tipo === 'PTR') {
-            if (!filter_var(
-                $dominio,
-                FILTER_VALIDATE_IP,
-                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
-            )) {
-                throw new InvalidArgumentException(
-                    'Informe um IP público permitido.'
-                );
-            }
-
             $binario = inet_pton($dominio);
 
             if (strlen($binario) === 4) {
