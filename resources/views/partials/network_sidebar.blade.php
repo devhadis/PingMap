@@ -129,6 +129,16 @@
         ◉ MTR / Network Analysis
     </a>
 
+    <div class="pm-nav-group">SEGURANÇA DE E-MAIL</div>
+
+    <a
+        class="pm-nav-link {{ request()->routeIs('ferramentas.email') ? 'active' : '' }}"
+        href="{{ route('ferramentas.email') }}"
+        @if(request()->routeIs('ferramentas.email')) aria-current="page" @endif
+    >
+        ◉ SPF / DKIM / DMARC
+    </a>
+
     <div class="pm-nav-group">EM DESENVOLVIMENTO</div>
     <span class="pm-nav-link disabled">BGP Lookup</span>
     <span class="pm-nav-link disabled">HTTP / TLS</span>

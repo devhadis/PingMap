@@ -207,12 +207,17 @@
     }
 </style>
 
+<div class="tools-shell">
+    @include('partials.network_sidebar')
+    <div class="tools-content">
+
+
 <div class="trace-eyebrow">NETWORK INTELLIGENCE / DIAGNÓSTICO</div>
 
 <h1 class="trace-title">Traceroute</h1>
 
 <p class="trace-description">
-    Descubra os saltos percorridos até um endereço IPv4 público.
+    Descubra os saltos percorridos até um endereço IPv4 ou IPv6 público.
     Os resultados são processados de forma assíncrona.
 </p>
 
@@ -223,7 +228,7 @@
         @csrf
 
         <div class="trace-field">
-            <label for="trace-destino">Endereço IPv4 público</label>
+            <label for="trace-destino">Endereço IPv4 ou IPv6 público</label>
             <input
                 id="trace-destino"
                 name="destino"
@@ -242,7 +247,7 @@
     </form>
 
     <div id="trace-status" class="trace-status" role="status" aria-live="polite">
-        Informe um endereço IPv4 público para iniciar.
+        Informe um endereço IPv4 ou IPv6 público para iniciar.
     </div>
 </section>
 
@@ -716,6 +721,10 @@ import { calcularIndicadoresRota } from "/js/traceroute-indicadores.js";
     void carregarHistorico(true);
 })();
 </script>
+
+    </div>
+</div>
+
 @endsection
 
 

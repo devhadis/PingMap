@@ -1,0 +1,98 @@
+body.tools-page {
+    display: block;
+    margin: 0;
+    padding: 0;
+    background: #0b1220;
+}
+
+body.tools-page > main.card {
+    width: 100%;
+    max-width: none;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+body.tools-page .tools-shell {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+body.tools-page .tools-content {
+    width: 100%;
+    max-width: 1250px;
+    min-width: 0;
+    padding: 42px;
+}
+
+body.tools-page .tools-content > * {
+    max-width: 100%;
+}
+
+@media (max-width: 850px) {
+    body.tools-page .tools-shell {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    body.tools-page .tools-content {
+        padding: 22px 14px;
+    }
+}
+
+/* Campos responsivos nas ferramentas */
+body.tools-page .tools-content form {
+    min-width: 0;
+    max-width: 100%;
+}
+
+body.tools-page .tools-content input,
+body.tools-page .tools-content select {
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+}
+
+body.tools-page .email-form {
+    min-width: 0;
+}
+
+body.tools-page .email-form > * {
+    min-width: 0;
+}
+
+@media (max-width: 1050px) {
+    body.tools-page .email-form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* Campos responsivos nas ferramentas */
+body.tools-page .tools-content form {
+    min-width: 0;
+    max-width: 100%;
+}
+
+body.tools-page .tools-content input,
+body.tools-page .tools-content select {
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+}
+
+body.tools-page .email-form {
+    min-width: 0;
+}
+
+body.tools-page .email-form > * {
+    min-width: 0;
+}
+
+@media (max-width: 1050px) {
+    body.tools-page .email-form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

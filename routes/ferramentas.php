@@ -12,4 +12,7 @@ Route::middleware('auth')->group(function () {
         ->name('ferramentas.traceroute');
     Route::view('/ferramentas/mtr', 'ferramentas.mtr')
         ->name('ferramentas.mtr');
+
+    Route::view('/ferramentas/email', 'ferramentas.email')
+        ->name('ferramentas.email');
 });

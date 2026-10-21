@@ -19,3 +19,5 @@ require __DIR__.'/traceroute.php';
 require __DIR__.'/mtr.php';
 
 require __DIR__.'/ferramentas.php';
+
+require __DIR__.'/email.php';

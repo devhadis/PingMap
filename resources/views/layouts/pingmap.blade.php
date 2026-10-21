@@ -69,6 +69,9 @@
             }
         }
     </style>
+    @if(trim($__env->yieldContent('body_class')) === 'tools-page')
+        <link rel="stylesheet" href="{{ asset('css/pingmap-tools.css') }}">
+    @endif
     @stack('styles')
 </head>
 <body class="@yield('body_class')">

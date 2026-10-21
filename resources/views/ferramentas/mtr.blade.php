@@ -215,13 +215,18 @@
     }
 </style>
 
+<div class="tools-shell">
+    @include('partials.network_sidebar')
+    <div class="tools-content">
+
+
 <div class="mtr-eyebrow">NETWORK INTELLIGENCE / DIAGNÓSTICO</div>
 
 <h1 class="mtr-title">MTR — Network Analysis</h1>
 
 <p class="mtr-description">
     Analise a rota, a latência e as respostas das sondas
-    até um endereço IPv4 público.
+    até um endereço IPv4 ou IPv6 público.
 </p>
 
 <section class="mtr-panel" aria-labelledby="mtr-form-title">
@@ -231,7 +236,7 @@
         @csrf
 
         <div class="mtr-field">
-            <label for="mtr-destino">Endereço IPv4 público</label>
+            <label for="mtr-destino">Endereço IPv4 ou IPv6 público</label>
             <input
                 id="mtr-destino"
                 name="destino"
@@ -249,7 +254,7 @@
     </form>
 
     <div id="mtr-status" class="mtr-status" role="status" aria-live="polite">
-        Informe um IPv4 público para iniciar.
+        Informe um endereço IPv4 ou IPv6 público para iniciar.
     </div>
 </section>
 
@@ -704,6 +709,10 @@ import { criarControleMtr } from "/js/mtr-controle.js";
     void carregarHistorico(true);
 })();
 </script>
+
+    </div>
+</div>
+
 @endsection
 
 

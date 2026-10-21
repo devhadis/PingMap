@@ -54,6 +54,13 @@ export function criarClienteMapa({
                 return;
             }
 
+            if (resposta?.codigo === 429) {
+                aoEstado(
+                    'Limite de consultas atingido. Aguarde antes de tentar novamente.'
+                );
+                return;
+            }
+
             if (resposta?.codigo === 503) {
                 aoEstado('Não foi possível processar a geolocalização.');
                 return;
