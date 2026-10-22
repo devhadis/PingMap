@@ -129,6 +129,16 @@
         ◉ MTR / Network Analysis
     </a>
 
+    <div class="pm-nav-group">SEGURANÇA DNS</div>
+
+    <a
+        class="pm-nav-link {{ request()->routeIs('ferramentas.dnssec') ? 'active' : '' }}"
+        href="{{ route('ferramentas.dnssec') }}"
+        @if(request()->routeIs('ferramentas.dnssec')) aria-current="page" @endif
+    >
+        ◉ DNSSEC Analyzer
+    </a>
+
     <div class="pm-nav-group">SEGURANÇA DE E-MAIL</div>
 
     <a

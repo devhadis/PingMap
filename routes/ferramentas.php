@@ -15,4 +15,7 @@ Route::middleware('auth')->group(function () {
 
     Route::view('/ferramentas/email', 'ferramentas.email')
         ->name('ferramentas.email');
+
+    Route::view('/ferramentas/dnssec', 'ferramentas.dnssec')
+        ->name('ferramentas.dnssec');
 });
