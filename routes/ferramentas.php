@@ -19,3 +19,9 @@ Route::middleware('auth')->group(function () {
     Route::view('/ferramentas/dnssec', 'ferramentas.dnssec')
         ->name('ferramentas.dnssec');
 });
+
+
+Route::view(
+    '/ferramentas/rdap',
+    'ferramentas.rdap'
+)->middleware('auth')->name('ferramentas.rdap');

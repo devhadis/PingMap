@@ -106,6 +106,15 @@
         ◉ DNS Lookup
     </a>
 
+
+    <a
+        class="pm-nav-link {{ request()->routeIs('ferramentas.rdap') ? 'active' : '' }}"
+        href="{{ route('ferramentas.rdap') }}"
+        @if(request()->routeIs('ferramentas.rdap')) aria-current="page" @endif
+    >
+        ◉ RDAP Lookup
+    </a>
+
     <a
         class="pm-nav-link {{ request()->routeIs('ferramentas.tcp') ? 'active' : '' }}"
         href="{{ route('ferramentas.tcp') }}"

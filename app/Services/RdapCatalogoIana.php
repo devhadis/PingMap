@@ -91,7 +91,9 @@ class RdapCatalogoIana
             );
         }
 
-        foreach ($dados['services'] as $servico) {
+        $encontrouServidorSeguro = false;
+
+        foreach ($dados['services'] as $indice => $servico) {
             if (
                 ! is_array($servico) ||
                 count($servico) !== 2 ||
@@ -110,9 +112,28 @@ class RdapCatalogoIana
                 $this->validarCidr($cidr, $ipv6);
             }
 
+            $servidoresSeguros = [];
+
             foreach ($servico[1] as $servidor) {
-                $this->validarServidor($servidor);
+                try {
+                    $this->validarServidor($servidor);
+                    $servidoresSeguros[] = $servidor;
+                } catch (UnexpectedValueException) {
+                    // Nunca utilizar URLs RDAP inseguras.
+                }
             }
+
+            $dados['services'][$indice][1] = $servidoresSeguros;
+
+            if ($servidoresSeguros !== []) {
+                $encontrouServidorSeguro = true;
+            }
+        }
+
+        if (! $encontrouServidorSeguro) {
+            throw new UnexpectedValueException(
+                'Catálogo IANA sem servidores RDAP HTTPS válidos.'
+            );
         }
 
         return $dados;
