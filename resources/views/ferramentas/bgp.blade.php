@@ -251,6 +251,7 @@
                 </div>
             </div>
         </section>
+        @include('ferramentas.partials.bgp_rede')
     </main>
 </div>
 

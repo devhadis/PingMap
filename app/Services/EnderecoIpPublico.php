@@ -81,6 +81,52 @@ class EnderecoIpPublico
         return $ip;
     }
 
+    public function validarFaixa(
+        string $ip,
+        int $prefixo
+    ): void {
+        // Reutiliza a validação do endereço inicial.
+        $this->validar($ip);
+
+        $binario = inet_pton($ip);
+        $ipv4 = strlen($binario) === 4;
+        $limite = $ipv4 ? 32 : 128;
+
+        if ($prefixo < 0 || $prefixo > $limite) {
+            throw new InvalidArgumentException(
+                'Máscara CIDR inválida.'
+            );
+        }
+
+        // Uma rede IPv6 precisa permanecer em 2000::/3.
+        if (! $ipv4 && $prefixo < 3) {
+            throw new InvalidArgumentException(
+                'Rede IPv6 não permitida.'
+            );
+        }
+
+        $bloqueados = $ipv4
+            ? self::IPV4_BLOQUEADOS
+            : self::IPV6_BLOQUEADOS;
+
+        foreach ($bloqueados as $cidr) {
+            [$rede, $mascara] = explode('/', $cidr);
+
+            // Duas redes se sobrepõem quando seus primeiros
+            // bits coincidem até a menor das máscaras.
+            $bits = min($prefixo, (int) $mascara);
+
+            if ($this->pertenceAoCidr(
+                $binario,
+                $rede . '/' . $bits
+            )) {
+                throw new InvalidArgumentException(
+                    'Rede CIDR inclui uma faixa bloqueada.'
+                );
+            }
+        }
+    }
+
     private function pertenceAoCidr(
         string $ipBinario,
         string $cidr
