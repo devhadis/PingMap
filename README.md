@@ -1,58 +1,236 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PingMap
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+**Plataforma web de diagnóstico, análise e observabilidade de redes.**
 
-## About Laravel
+O PingMap é um projeto desenvolvido com PHP, Laravel e Docker
+para reunir ferramentas de diagnóstico de redes em uma única
+interface web.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+O objetivo é facilitar a análise de conectividade, roteamento,
+resolução de nomes, segurança DNS e informações de endereçamento IP.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+O projeto também demonstra práticas de desenvolvimento backend,
+DevOps, segurança de aplicações e testes automatizados.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Funcionalidades
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+| Ferramenta | Finalidade |
+|---|---|
+| Ping | Verificar conectividade e métricas de rede |
+| Traceroute | Identificar os saltos até um destino |
+| MTR | Analisar rotas e métricas dos saltos |
+| TCP | Verificar conectividade em portas permitidas |
+| DNS | Consultar registros DNS e resolução reversa |
+| DNSSEC | Analisar a validação de segurança DNS |
+| Email DNS | Analisar registros SPF, DKIM e DMARC |
+| RDAP | Consultar informações de registro de endereços IP |
+| GeoIP | Obter informações geográficas de IPs públicos |
+| BGP Lookup | Consultar ASN, prefixos e informações de roteamento |
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### BGP Lookup
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+A ferramenta BGP permite consultas por:
 
-## Agentic Development
+- ASN;
+- IPv4 público;
+- IPv6 público;
+- Prefixos CIDR IPv4 e IPv6;
+- Domínios públicos.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+As consultas por rede utilizam dados da API RIPEstat.
 
-```bash
-composer require laravel/boost --dev
+Para consultas por domínio, a aplicação realiza resolução
+DNS-over-HTTPS, identifica endereços públicos e consulta
+informações BGP dos IPs encontrados.
 
-php artisan boost:install
+---
+
+## Tecnologias
+
+| Camada | Tecnologia |
+|---|---|
+| Backend | PHP 8.4 e Laravel 13 |
+| Servidor web | Nginx |
+| Banco de dados | PostgreSQL |
+| Cache e filas | Redis |
+| Infraestrutura | Docker e Docker Compose |
+| Frontend | Blade, HTML, CSS e JavaScript |
+| Testes | PHPUnit / Laravel Test |
+| Versionamento | Git e GitHub |
+
+---
+
+## Arquitetura
+
+O projeto utiliza uma arquitetura baseada em controllers,
+serviços especializados e processamento assíncrono.
+
+```text
+             Usuário
+                |
+                v
+         Interface Web
+                |
+                v
+              Nginx
+                |
+                v
+          Laravel / PHP
+                |
+       +--------+--------+
+       |        |        |
+       v        v        v
+  PostgreSQL  Redis   Serviços
+                       de rede
+                          |
+                          v
+                    APIs externas
+
+      Worker Laravel + Redis
+       para tarefas em fila
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Os componentes são executados em contêineres Docker,
+facilitando o isolamento dos serviços e a manutenção
+do ambiente de desenvolvimento.
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Executando o projeto
 
-## Code of Conduct
+### Pré-requisitos
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- Docker;
+- Docker Compose;
+- Arquivo `.env` configurado;
+- Acesso às dependências externas necessárias.
 
-## Security Vulnerabilities
+### Iniciar os contêineres
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Em um ambiente já configurado:
 
-## License
+```bash
+docker compose up -d --build
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Verificar os serviços
+
+```bash
+docker compose ps
+```
+
+### Executar as migrações
+
+```bash
+docker compose exec -T app php artisan migrate
+```
+
+### Acessar a aplicação
+
+No ambiente local configurado:
+
+http://localhost:8080
+
+A porta de acesso pode variar conforme a configuração
+do Docker e do servidor.
+
+---
+
+## Segurança
+
+O PingMap incorpora mecanismos de proteção, incluindo:
+
+- Autenticação de usuários;
+- Validação de entradas;
+- Bloqueio de destinos privados ou reservados em consultas aplicáveis;
+- Limitação de requisições;
+- Proteção CSRF;
+- Limites de tempo para operações externas;
+- Tratamento controlado de erros;
+- Testes automatizados de segurança.
+
+Na ferramenta BGP, consultas por domínio utilizam
+DNS-over-HTTPS com limites de tempo, quantidade de
+resultados e recuperação controlada de falhas temporárias.
+
+**Observação:** o projeto está em desenvolvimento.
+Antes de uma implantação pública, são necessárias
+revisões adicionais de segurança, configuração e operação.
+
+---
+
+## Testes automatizados
+
+O desenvolvimento utiliza práticas de TDD:
+
+**RED → GREEN → REFACTOR**
+
+### Executar todos os testes
+
+```bash
+docker compose exec -T app php artisan test
+```
+
+### Executar os testes BGP
+
+```bash
+docker compose exec -T app php artisan test --filter=Bgp
+```
+
+### Resultado validado no Sprint 43
+
+| Indicador | Resultado |
+|---|---|
+| Testes da aplicação | 728 aprovados |
+| Asserções | 1.598 |
+| Testes BGP | 109 aprovados |
+| Asserções BGP | 237 |
+
+Esses números representam a execução validada em
+24/10/2026 e podem mudar com a evolução do projeto.
+
+---
+
+## Documentação técnica
+
+A documentação detalhada está disponível na pasta `docs/`.
+
+### Sprint 43 — Consultas BGP por rede
+
+[Consultar documentação técnica do Sprint 43](docs/sprint-43-bgp-rede.md)
+
+O documento apresenta:
+
+- Objetivos e arquitetura;
+- Componentes e serviços;
+- Endpoint da API;
+- Exemplos de requisição e resposta;
+- Medidas de segurança;
+- Estratégia de testes;
+- Tratamento de falhas DNS;
+- Instruções de operação.
+
+---
+
+## Desenvolvimento e evolução
+
+O PingMap é um projeto em evolução contínua, desenvolvido
+para aplicar conhecimentos de:
+
+- Engenharia de software;
+- Desenvolvimento PHP e Laravel;
+- Redes de computadores;
+- Segurança de aplicações;
+- Docker e DevOps;
+- Testes automatizados;
+- Integração com serviços externos.
+
+**Entrega do Sprint 43:** `8927ea4`
+
+---
+
+## Repositório
+
+https://github.com/devhadis/PingMap
