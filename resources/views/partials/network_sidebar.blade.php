@@ -158,8 +158,17 @@
         ◉ SPF / DKIM / DMARC
     </a>
 
+    <div class="pm-nav-group">ROTEAMENTO BGP</div>
+
+    <a
+        class="pm-nav-link {{ request()->routeIs('ferramentas.bgp') ? 'active' : '' }}"
+        href="{{ route('ferramentas.bgp') }}"
+        @if(request()->routeIs('ferramentas.bgp')) aria-current="page" @endif
+    >
+        ◉ BGP Lookup
+    </a>
+
     <div class="pm-nav-group">EM DESENVOLVIMENTO</div>
-    <span class="pm-nav-link disabled">BGP Lookup</span>
     <span class="pm-nav-link disabled">HTTP / TLS</span>
     <span class="pm-nav-link disabled">Monitoramento</span>
 </aside>

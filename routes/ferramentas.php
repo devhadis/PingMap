@@ -25,3 +25,9 @@ Route::view(
     '/ferramentas/rdap',
     'ferramentas.rdap'
 )->middleware('auth')->name('ferramentas.rdap');
+
+
+Route::view(
+    '/ferramentas/bgp',
+    'ferramentas.bgp'
+)->middleware('auth')->name('ferramentas.bgp');

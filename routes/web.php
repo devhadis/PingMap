@@ -25,3 +25,5 @@ require __DIR__.'/email.php';
 require __DIR__.'/dnssec.php';
 
 require __DIR__.'/rdap.php';
+
+require __DIR__.'/bgp.php';
