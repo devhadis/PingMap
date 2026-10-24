@@ -27,3 +27,5 @@ require __DIR__.'/dnssec.php';
 require __DIR__.'/rdap.php';
 
 require __DIR__.'/bgp.php';
+
+require __DIR__.'/http_tls.php';

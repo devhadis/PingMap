@@ -31,3 +31,8 @@ Route::view(
     '/ferramentas/bgp',
     'ferramentas.bgp'
 )->middleware('auth')->name('ferramentas.bgp');
+
+Route::view(
+    '/ferramentas/http-tls',
+    'ferramentas.http_tls'
+)->middleware('auth')->name('ferramentas.http_tls');

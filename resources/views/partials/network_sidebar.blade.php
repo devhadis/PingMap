@@ -168,7 +168,14 @@
         ◉ BGP Lookup
     </a>
 
+    <div class="pm-nav-group">SEGURANÇA WEB</div>
+    <a
+        class="pm-nav-link {{ request()->routeIs('ferramentas.http_tls') ? 'active' : '' }}"
+        href="{{ route('ferramentas.http_tls', [], false) }}"
+        @if(request()->routeIs('ferramentas.http_tls')) aria-current="page" @endif
+    >
+        ◉ HTTP/TLS Analyzer
+    </a>
     <div class="pm-nav-group">EM DESENVOLVIMENTO</div>
-    <span class="pm-nav-link disabled">HTTP / TLS</span>
     <span class="pm-nav-link disabled">Monitoramento</span>
 </aside>
