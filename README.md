@@ -141,6 +141,17 @@ dos contêineres.
 
 ---
 
+## Documentação das APIs
+
+O PingMap possui 22 rotas de API para diagnósticos
+e consultas de rede.
+
+A documentação inicial apresenta os contratos
+das APIs RDAP e BGP, incluindo autenticação,
+parâmetros, exemplos JSON e códigos HTTP.
+
+Consulte a [Referência das APIs](docs/api-referencia.md).
+
 ## Executando o projeto
 
 ### Pré-requisitos
