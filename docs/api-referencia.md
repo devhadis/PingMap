@@ -1277,3 +1277,260 @@ O diagnóstico verifica a possibilidade de
 estabelecer uma conexão TCP com a porta
 informada. Ele não realiza uma requisição
 HTTP nem uma análise de certificado TLS.
+
+## 13. Diagnósticos de rede
+
+A API de diagnósticos de rede utiliza o comando
+`ping` para verificar a comunicação com um
+endereço IP público.
+
+O processamento ocorre por meio do job
+`ExecutarDiagnostico`, executado pela fila
+do Laravel.
+
+As consultas são associadas ao usuário autenticado.
+
+### 13.1. Criação de diagnóstico
+
+**Endpoint:**
+
+`POST /api/v1/diagnosticos`
+
+**Autenticação:** obrigatória.
+
+**Limite:** 10 requisições por minuto.
+
+**Parâmetros JSON:**
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `destino` | string | Sim | Endereço IPv4 ou IPv6 público, com até 45 caracteres. |
+
+A API não aceita nomes de domínio nem
+endereços IP privados ou reservados
+bloqueados pela validação.
+
+**Exemplo de requisição:**
+
+~~~json
+{
+  "destino": "1.1.1.1"
+}
+~~~
+
+**Resposta de sucesso — HTTP 202:**
+
+~~~json
+{
+  "id": 1,
+  "destino": "1.1.1.1",
+  "status": "pendente"
+}
+~~~
+
+O identificador `id` permite consultar
+posteriormente o resultado do diagnóstico.
+
+O status inicial é `pendente`, pois a
+execução é encaminhada para um job.
+
+A resposta HTTP 202 indica que a consulta
+foi aceita, não que o diagnóstico já
+terminou.
+
+O endpoint valida o formato do IP e
+rejeita endereços privados ou reservados
+não permitidos.
+
+Entradas inválidas produzem uma resposta
+HTTP 422 com os detalhes da validação.
+
+### 13.2. Consulta de diagnóstico por identificador
+
+**Endpoint:**
+
+`GET /api/v1/diagnosticos/{id}`
+
+**Autenticação:** obrigatória.
+
+**Limite:** 60 requisições por minuto.
+
+O parâmetro `id` deve ser numérico.
+
+A consulta retorna somente diagnósticos
+pertencentes ao usuário autenticado.
+
+**Exemplo de requisição:**
+
+`GET /api/v1/diagnosticos/1`
+
+**Exemplo de resposta — HTTP 200:**
+
+~~~json
+{
+  "id": 1,
+  "destino": "1.1.1.1",
+  "status": "pendente",
+  "perda_percentual": null,
+  "latencia_media_ms": null,
+  "latencia_minima_ms": null,
+  "latencia_maxima_ms": null,
+  "jitter_ms": null,
+  "amostras": null,
+  "created_at": "2026-10-25T12:00:00.000000Z",
+  "updated_at": "2026-10-25T12:00:00.000000Z"
+}
+~~~
+
+O exemplo representa um diagnóstico
+recém-criado, ainda aguardando processamento.
+
+Os identificadores e as datas são ilustrativos.
+
+**Campos da resposta:**
+
+| Campo | Descrição |
+|---|---|
+| `id` | Identificador do diagnóstico. |
+| `destino` | Endereço IP consultado. |
+| `status` | Estado atual do processamento. |
+| `perda_percentual` | Percentual de perda de pacotes. |
+| `latencia_media_ms` | Latência média em milissegundos. |
+| `latencia_minima_ms` | Menor latência registrada. |
+| `latencia_maxima_ms` | Maior latência registrada. |
+| `jitter_ms` | Média das variações absolutas entre latências consecutivas. |
+| `amostras` | Quantidade de tempos de resposta válidos. |
+| `created_at` | Data de criação do diagnóstico. |
+| `updated_at` | Data da última atualização. |
+
+**Estados possíveis:**
+
+| Status | Significado |
+|---|---|
+| `pendente` | Aguardando processamento pela fila. |
+| `executando` | O job iniciou a execução. |
+| `sucesso` | O ping obteve sucesso ou recebeu amostras válidas. |
+| `sem_resposta` | Nenhuma amostra válida com código de saída 1. |
+| `timeout` | O processo ultrapassou o limite de execução. |
+| `erro` | Falha durante a execução do diagnóstico. |
+
+As métricas podem ser `null` quando
+ainda não estão disponíveis.
+
+O campo `erro` é armazenado no banco de
+dados, mas não é retornado pelo método
+`show` da API.
+
+Quando o identificador não existe ou
+pertence a outro usuário, a API retorna
+HTTP 404.
+
+### 13.3. Segurança e tratamento de erros
+
+As duas rotas de diagnósticos exigem
+autenticação pelo middleware `auth`.
+
+O acesso aos resultados é restrito
+ao usuário proprietário do diagnóstico.
+
+O endpoint de criação aceita somente
+endereços IPv4 ou IPv6 válidos e públicos.
+
+Endereços privados, reservados e entradas
+que não representam um IP válido são
+rejeitados antes da criação do registro.
+
+**Códigos HTTP:**
+
+| Código | Significado |
+|---|---|
+| `200` | Consulta de diagnóstico encontrada. |
+| `202` | Diagnóstico criado e encaminhado para processamento. |
+| `401` | Usuário não autenticado. |
+| `404` | Diagnóstico inexistente ou não pertencente ao usuário. |
+| `422` | Dados de entrada inválidos ou destino não permitido. |
+| `429` | Limite de requisições excedido. |
+
+**Exemplo de erro — HTTP 422:**
+
+~~~json
+{
+  "message": "Informe um IP público permitido.",
+  "errors": {
+    "destino": [
+      "Informe um IP público permitido."
+    ]
+  }
+}
+~~~
+
+Esse exemplo representa a rejeição de
+um endereço IP privado ou reservado pela
+validação do controller.
+
+Outros erros de validação podem apresentar
+mensagens diferentes.
+
+**Segurança da execução:**
+
+O serviço `PingService` valida novamente
+o destino antes de executar o diagnóstico.
+
+O comando `ping` é executado com argumentos
+separados pelo componente Symfony Process,
+sem concatenar a entrada do usuário
+em uma linha de comando de shell.
+
+O serviço utiliza IPv4 ou IPv6 conforme
+a família do endereço informado.
+
+São enviadas três solicitações ICMP,
+com espera de até dois segundos por
+resposta e limite de dez segundos para
+a execução do processo.
+
+O job `ExecutarDiagnostico` possui uma
+tentativa configurada (`tries = 1`).
+
+Durante o processamento, o status passa
+de `pendente` para `executando`.
+
+O resultado final pode ser `sucesso`,
+`sem_resposta`, `timeout` ou `erro`.
+
+Se o processo ultrapassar o tempo limite,
+o serviço retorna o status `timeout`,
+com as métricas indisponíveis.
+
+Se ocorrer uma exceção no job, o registro
+recebe o status `erro` e a mensagem
+genérica `Falha ao executar o diagnóstico.`.
+
+Essa mensagem é armazenada no banco,
+mas não é exposta pela resposta da rota GET.
+
+Uma falha no processamento em segundo plano
+não altera retroativamente a resposta
+HTTP 202 recebida na criação da consulta.
+
+**Interpretação das métricas:**
+
+O percentual de perda de pacotes e a
+latência média são extraídos do resumo
+produzido pelo comando `ping`.
+
+As latências mínima e máxima são calculadas
+a partir dos tempos individuais de resposta.
+
+O jitter corresponde à média das diferenças
+absolutas entre tempos consecutivos válidos.
+
+As métricas avançadas são arredondadas
+para três casas decimais.
+
+Quando não há amostras válidas,
+`amostras` é igual a zero e as métricas
+avançadas de latência e jitter são `null`.
+
+Com apenas uma amostra válida,
+o jitter permanece `null`.
