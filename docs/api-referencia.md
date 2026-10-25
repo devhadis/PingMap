@@ -1964,3 +1964,438 @@ não é exposto na resposta da API.
 
 A geolocalização não modifica os saltos
 originais armazenados na consulta MTR.
+
+## 15. Consultas Traceroute e GeoIP
+
+A API Traceroute permite identificar os
+saltos intermediários de uma rota de rede
+e solicitar a geolocalização dos IPs
+encontrados durante o diagnóstico.
+
+Todas as rotas exigem autenticação
+pelo middleware `auth`.
+
+| Método | Endpoint |
+|---|---|
+| `POST` | `/api/v1/traceroute/consultas` |
+| `GET` | `/api/v1/traceroute/consultas` |
+| `GET` | `/api/v1/traceroute/consultas/{id}` |
+| `GET` | `/api/v1/traceroute/consultas/{id}/geo` |
+
+### 15.1. Criação de consulta Traceroute
+
+**Endpoint:** `POST /api/v1/traceroute/consultas`
+
+Cria uma consulta Traceroute associada
+ao usuário autenticado e encaminha
+sua execução para a fila de jobs.
+
+**Limite:** 10 requisições por minuto.
+
+**Corpo da requisição:**
+
+~~~json
+{
+  "destino": "1.1.1.1"
+}
+~~~
+
+**Validação do campo `destino`:**
+
+O campo é obrigatório, deve ser uma
+string e pode conter até 45 caracteres.
+
+O endereço informado deve ser um IPv4
+ou IPv6 público permitido pelo serviço
+`TracerouteService`.
+
+A API não aceita nomes de domínio
+como destino nessa rota.
+
+**Resposta de sucesso — HTTP 202:**
+
+~~~json
+{
+  "id": 1,
+  "destino": "1.1.1.1",
+  "status": "pendente"
+}
+~~~
+
+O identificador é apenas ilustrativo.
+
+O status inicial é `pendente`.
+
+O processamento ocorre em segundo plano
+pelo job `ExecutarConsultaTraceroute`.
+
+**Campos da resposta:**
+
+| Campo | Descrição |
+|---|---|
+| `id` | Identificador da consulta criada. |
+| `destino` | Endereço IP informado. |
+| `status` | Estado inicial do diagnóstico. |
+
+**Destino inválido — HTTP 422:**
+
+Quando o endereço IP é rejeitado pelo
+serviço de validação, a API retorna
+um objeto JSON com o campo `message`.
+
+O conteúdo da mensagem corresponde
+ao erro produzido pelo validador.
+
+Campos ausentes, tipos incorretos
+e valores acima de 45 caracteres
+também produzem HTTP 422.
+
+**Outros códigos HTTP:**
+
+| Código | Significado |
+|---|---|
+| `401` | Usuário não autenticado. |
+| `429` | Limite de requisições excedido. |
+
+A criação de uma consulta não significa
+que o diagnóstico já foi executado.
+
+O resultado deve ser consultado
+posteriormente utilizando o identificador
+retornado pela API.
+
+### 15.2. Listagem de consultas Traceroute
+
+**Endpoint:** `GET /api/v1/traceroute/consultas`
+
+Retorna as consultas Traceroute pertencentes
+ao usuário autenticado.
+
+**Autenticação:** obrigatória.
+
+**Limite:** 60 requisições por minuto.
+
+A API retorna até 20 consultas,
+ordenadas pelo identificador mais recente.
+
+**Exemplo de resposta — HTTP 200:**
+
+~~~json
+[
+  {
+    "id": 2,
+    "destino": "8.8.8.8",
+    "status": "concluido",
+    "created_at": "2026-10-25T21:00:00.000000Z"
+  },
+  {
+    "id": 1,
+    "destino": "1.1.1.1",
+    "status": "pendente",
+    "created_at": "2026-10-25T20:00:00.000000Z"
+  }
+]
+~~~
+
+Os identificadores e horários são
+exemplos ilustrativos.
+
+**Campos retornados:**
+
+| Campo | Descrição |
+|---|---|
+| `id` | Identificador da consulta. |
+| `destino` | Endereço IP consultado. |
+| `status` | Estado atual do diagnóstico. |
+| `created_at` | Data e hora de criação. |
+
+**Estados possíveis:**
+
+| Estado | Significado |
+|---|---|
+| `pendente` | Aguardando processamento. |
+| `executando` | Diagnóstico em execução. |
+| `concluido` | Diagnóstico concluído. |
+| `erro` | Falha durante a execução. |
+
+A listagem não inclui os saltos
+nem as mensagens de erro.
+
+Para obter esses dados, deve ser
+utilizada a consulta por identificador.
+
+**Lista vazia — HTTP 200:**
+
+~~~json
+[]
+~~~
+
+Quando o usuário não possui consultas,
+a API retorna um array vazio.
+
+O limite de 20 registros é fixo.
+Essa rota não implementa paginação.
+
+Consultas de outros usuários não
+são incluídas no resultado.
+
+**Outros códigos HTTP:**
+
+| Código | Significado |
+|---|---|
+| `401` | Usuário não autenticado. |
+| `429` | Limite de requisições excedido. |
+
+### 15.3. Consulta Traceroute por identificador
+
+**Endpoint:** `GET /api/v1/traceroute/consultas/{id}`
+
+Retorna os detalhes de uma consulta Traceroute
+pertencente ao usuário autenticado.
+
+**Autenticação:** obrigatória.
+
+**Limite:** 60 requisições por minuto.
+
+O parâmetro `id` deve ser numérico.
+
+**Exemplo de resposta — HTTP 200:**
+
+~~~json
+{
+  "id": 1,
+  "destino": "1.1.1.1",
+  "status": "concluido",
+  "saltos": [
+    {
+      "salto": 1,
+      "ip": "192.168.1.1",
+      "latencia_ms": 1.5
+    },
+    {
+      "salto": 2,
+      "ip": null,
+      "latencia_ms": null
+    },
+    {
+      "salto": 3,
+      "ip": "1.1.1.1",
+      "latencia_ms": 12.8
+    }
+  ],
+  "erro": null,
+  "created_at": "2026-10-25T20:00:00.000000Z",
+  "updated_at": "2026-10-25T20:00:30.000000Z"
+}
+~~~
+
+Os identificadores, endereços, horários
+e latências são exemplos ilustrativos.
+
+**Campos principais:**
+
+| Campo | Descrição |
+|---|---|
+| `id` | Identificador da consulta. |
+| `destino` | Endereço IP consultado. |
+| `status` | Estado atual do diagnóstico. |
+| `saltos` | Lista dos saltos identificados. |
+| `erro` | Mensagem de erro, quando existente. |
+| `created_at` | Data e hora de criação. |
+| `updated_at` | Data e hora da última atualização. |
+
+**Campos de cada salto:**
+
+| Campo | Descrição |
+|---|---|
+| `salto` | Posição do salto na rota. |
+| `ip` | Endereço IP encontrado ou `null`. |
+| `latencia_ms` | Tempo de resposta em milissegundos ou `null`. |
+
+Quando um salto não responde, o serviço
+registra `ip` e `latencia_ms` como `null`.
+
+O serviço Traceroute utiliza um limite
+de até 12 saltos e um timeout de
+20 segundos para o processo.
+
+**Estados do diagnóstico:**
+
+| Estado | Significado |
+|---|---|
+| `pendente` | Aguardando processamento. |
+| `executando` | Diagnóstico em andamento. |
+| `concluido` | Resultado disponível. |
+| `erro` | Falha durante a execução. |
+
+O campo `saltos` pode ser `null` quando
+a consulta ainda não possui resultado.
+
+**Controle de acesso:**
+
+Somente o proprietário da consulta
+pode acessar seus detalhes.
+
+**Outros códigos HTTP:**
+
+| Código | Significado |
+|---|---|
+| `401` | Usuário não autenticado. |
+| `404` | Consulta inexistente ou de outro usuário. |
+| `429` | Limite de requisições excedido. |
+
+### 15.4. Geolocalização dos saltos Traceroute
+
+**Endpoint:** `GET /api/v1/traceroute/consultas/{id}/geo`
+
+Solicita ou consulta a geolocalização
+dos saltos de um diagnóstico Traceroute.
+
+**Autenticação:** obrigatória.
+
+**Limite:** 10 requisições por minuto.
+
+O parâmetro `id` deve ser numérico.
+
+A consulta deve pertencer ao usuário
+autenticado e estar com status `concluido`.
+
+A geolocalização é processada
+de forma assíncrona pelo job
+`ExecutarGeoIpSaltos`.
+
+**Processamento pendente — HTTP 202:**
+
+~~~json
+{
+  "status": "pendente"
+}
+~~~
+
+A resposta indica que o processamento
+ainda não terminou.
+
+O cliente pode realizar outra requisição
+ao mesmo endpoint para consultar o resultado.
+
+**Geolocalização concluída — HTTP 200:**
+
+~~~json
+{
+  "status": "concluido",
+  "saltos": [
+    {
+      "salto": 1,
+      "ip": "192.168.1.1",
+      "latencia_ms": 1.5,
+      "geo": null
+    },
+    {
+      "salto": 2,
+      "ip": null,
+      "latencia_ms": null,
+      "geo": null
+    },
+    {
+      "salto": 3,
+      "ip": "1.1.1.1",
+      "latencia_ms": 12.8,
+      "geo": {
+        "ip": "1.1.1.1",
+        "pais": "Australia",
+        "codigo_pais": "AU",
+        "cidade": "Sydney",
+        "latitude": -33.8688,
+        "longitude": 151.2093,
+        "asn": null,
+        "organizacao": null
+      }
+    }
+  ]
+}
+~~~
+
+Os endereços, valores de latência
+e dados geográficos são ilustrativos.
+
+A localização real depende da resposta
+do provedor externo e pode variar.
+
+**Campos da geolocalização:**
+
+| Campo | Descrição |
+|---|---|
+| `ip` | Endereço IP geolocalizado. |
+| `pais` | Nome do país. |
+| `codigo_pais` | Código do país. |
+| `cidade` | Cidade informada pelo provedor. |
+| `latitude` | Latitude geográfica. |
+| `longitude` | Longitude geográfica. |
+| `asn` | Número do sistema autônomo, quando disponível. |
+| `organizacao` | Organização associada ao IP, quando disponível. |
+
+O campo `geo` é `null` quando não existe
+uma localização válida para o salto.
+
+Saltos sem resposta, endereços privados
+e endereços não permitidos não são
+enviados ao provedor de geolocalização.
+
+As informações originais do Traceroute
+são preservadas.
+
+**Diagnóstico não concluído — HTTP 409:**
+
+~~~json
+{
+  "message": "O diagnóstico ainda não está concluído."
+}
+~~~
+
+**Falha na geolocalização — HTTP 503:**
+
+~~~json
+{
+  "status": "erro",
+  "message": "Não foi possível processar a geolocalização."
+}
+~~~
+
+**Outros códigos HTTP:**
+
+| Código | Significado |
+|---|---|
+| `401` | Usuário não autenticado. |
+| `404` | Consulta inexistente ou de outro usuário. |
+| `429` | Limite de requisições excedido. |
+
+**Cache e processamento:**
+
+A reserva inicial de processamento
+possui validade de 10 minutos.
+
+Resultados concluídos ficam armazenados
+em cache por 6 horas.
+
+Resultados com erro ficam armazenados
+em cache por 2 minutos.
+
+Localizações válidas de IPs são
+armazenadas em cache por 1 dia.
+
+O processamento utiliza bloqueios
+e identificadores internos de tentativa
+para evitar jobs duplicados e impedir
+que resultados antigos sobrescrevam
+uma tentativa mais recente.
+
+Esses identificadores internos
+não são expostos na resposta da API.
+
+O job de geolocalização possui limite
+de execução de 90 segundos e uma tentativa.
+
+O serviço utiliza consultas HTTPS,
+sem seguir redirecionamentos, e limita
+o tempo da requisição ao provedor
+a 5 segundos.
