@@ -1534,3 +1534,433 @@ avançadas de latência e jitter são `null`.
 
 Com apenas uma amostra válida,
 o jitter permanece `null`.
+
+## 14. Consultas MTR e GeoIP
+
+A API MTR permite executar diagnósticos de rota
+de rede, consultar os saltos intermediários e
+solicitar a geolocalização dos endereços IP.
+
+Todas as rotas exigem autenticação pelo
+middleware `auth`.
+
+| Método | Endpoint |
+|---|---|
+| `POST` | `/api/v1/mtr/consultas` |
+| `GET` | `/api/v1/mtr/consultas` |
+| `GET` | `/api/v1/mtr/consultas/{id}` |
+| `GET` | `/api/v1/mtr/consultas/{id}/geo` |
+
+### 14.1. Criação de consulta MTR
+
+**Endpoint:** `POST /api/v1/mtr/consultas`
+
+Cria uma consulta MTR associada ao usuário
+autenticado e encaminha seu processamento
+para a fila de jobs.
+
+**Limite:** 10 requisições por minuto.
+
+**Corpo da requisição:**
+
+~~~json
+{
+  "destino": "1.1.1.1"
+}
+~~~
+
+O campo `destino` é obrigatório, deve ser
+uma string com até 45 caracteres e precisa
+representar um endereço IPv4 ou IPv6 público
+permitido.
+
+**Resposta de sucesso — HTTP 202:**
+
+~~~json
+{
+  "id": 1,
+  "destino": "1.1.1.1",
+  "status": "pendente"
+}
+~~~
+
+O identificador apresentado é ilustrativo.
+
+O status inicial é `pendente`. A execução
+ocorre em segundo plano pelo job
+`ExecutarConsultaMtr`.
+
+**Destino não permitido — HTTP 422:**
+
+~~~json
+{
+  "message": "Destino IPv4 ou IPv6 público inválido."
+}
+~~~
+
+Essa resposta é produzida quando o serviço
+rejeita o endereço informado.
+
+Campos ausentes, tipos incorretos e valores
+acima do limite de caracteres também
+produzem HTTP 422, utilizando o formato
+de erros de validação do Laravel.
+
+### 14.2. Listagem de consultas MTR
+
+**Endpoint:** `GET /api/v1/mtr/consultas`
+
+Retorna as consultas MTR pertencentes
+ao usuário autenticado.
+
+**Limite:** 60 requisições por minuto.
+
+A consulta retorna até 20 registros,
+ordenados pelo identificador mais recente.
+
+**Exemplo de resposta — HTTP 200:**
+
+~~~json
+[
+  {
+    "id": 2,
+    "destino": "8.8.8.8",
+    "status": "concluido",
+    "created_at": "2026-10-25T21:00:00.000000Z"
+  },
+  {
+    "id": 1,
+    "destino": "1.1.1.1",
+    "status": "pendente",
+    "created_at": "2026-10-25T20:00:00.000000Z"
+  }
+]
+~~~
+
+Os identificadores e horários apresentados
+são apenas exemplos ilustrativos.
+
+**Campos retornados:**
+
+| Campo | Descrição |
+|---|---|
+| `id` | Identificador da consulta MTR. |
+| `destino` | Endereço IPv4 ou IPv6 consultado. |
+| `status` | Estado atual do diagnóstico. |
+| `created_at` | Data e hora de criação do registro. |
+
+**Estados possíveis:**
+
+| Estado | Significado |
+|---|---|
+| `pendente` | Consulta aguardando processamento. |
+| `executando` | Diagnóstico em execução. |
+| `concluido` | Diagnóstico finalizado com sucesso. |
+| `erro` | Ocorreu uma falha na execução. |
+
+A listagem não retorna os saltos,
+as métricas individuais nem a mensagem
+de erro do diagnóstico.
+
+Esses dados podem ser consultados
+pelo endpoint que recebe o identificador.
+
+**Lista vazia — HTTP 200:**
+
+~~~json
+[]
+~~~
+
+Quando o usuário ainda não possui
+consultas MTR, a API retorna um
+array vazio.
+
+A implementação utiliza um limite
+fixo de 20 registros e não fornece
+paginação nessa rota.
+
+Consultas pertencentes a outros usuários
+não são incluídas na resposta.
+
+### 14.3. Consulta MTR por identificador
+
+**Endpoint:** `GET /api/v1/mtr/consultas/{id}`
+
+Retorna os detalhes de uma consulta MTR
+pertencente ao usuário autenticado.
+
+**Limite:** 60 requisições por minuto.
+
+O parâmetro `id` deve ser numérico.
+
+**Exemplo de resposta — HTTP 200:**
+
+~~~json
+{
+  "id": 1,
+  "destino": "1.1.1.1",
+  "status": "concluido",
+  "saltos": [
+    {
+      "salto": 1,
+      "ip": "192.168.1.1",
+      "perda_pct": 0,
+      "enviados": 3,
+      "ultima_ms": 1.5,
+      "media_ms": 1.7,
+      "melhor_ms": 1.4,
+      "pior_ms": 2.2
+    },
+    {
+      "salto": 2,
+      "ip": null,
+      "perda_pct": 100,
+      "enviados": 3,
+      "ultima_ms": null,
+      "media_ms": null,
+      "melhor_ms": null,
+      "pior_ms": null
+    }
+  ],
+  "erro": null,
+  "created_at": "2026-10-25T20:00:00.000000Z",
+  "updated_at": "2026-10-25T20:00:30.000000Z"
+}
+~~~
+
+Os endereços, horários e valores das métricas
+são exemplos ilustrativos, não resultados
+de uma medição real.
+
+**Campos principais:**
+
+| Campo | Descrição |
+|---|---|
+| `id` | Identificador da consulta. |
+| `destino` | Endereço IP de destino. |
+| `status` | Estado atual do diagnóstico. |
+| `saltos` | Lista dos saltos identificados. |
+| `erro` | Mensagem de erro, quando existente. |
+| `created_at` | Data e hora de criação. |
+| `updated_at` | Data e hora da última atualização. |
+
+**Campos de cada salto:**
+
+| Campo | Descrição |
+|---|---|
+| `salto` | Número do salto na rota. |
+| `ip` | Endereço IP identificado ou `null`. |
+| `perda_pct` | Percentual de perda de pacotes. |
+| `enviados` | Quantidade de pacotes enviados. |
+| `ultima_ms` | Latência da última resposta. |
+| `media_ms` | Latência média. |
+| `melhor_ms` | Menor latência registrada. |
+| `pior_ms` | Maior latência registrada. |
+
+As latências são expressas em milissegundos.
+
+Quando o MTR não identifica um endereço IP
+válido para determinado salto, o campo `ip`
+recebe `null`.
+
+Nesse caso, os quatro campos de latência
+também recebem `null`.
+
+O campo `saltos` pode ser `null` enquanto
+o diagnóstico ainda não foi concluído
+ou quando a execução falhou.
+
+**Estados possíveis:**
+
+| Estado | Significado |
+|---|---|
+| `pendente` | Aguardando execução. |
+| `executando` | Diagnóstico em andamento. |
+| `concluido` | Resultado disponível. |
+| `erro` | Falha durante a execução. |
+
+Quando ocorre uma exceção no job,
+o status é atualizado para `erro`,
+os saltos recebem `null` e o campo
+`erro` contém a mensagem genérica
+`Falha ao executar MTR.`.
+
+**Controle de acesso:**
+
+A consulta somente pode ser acessada
+pelo usuário proprietário do registro.
+
+Uma consulta inexistente ou pertencente
+a outro usuário retorna HTTP 404.
+
+Usuários não autenticados recebem HTTP 401.
+
+O limite de requisições também pode
+produzir HTTP 429.
+
+### 14.4. Geolocalização dos saltos MTR
+
+**Endpoint:** `GET /api/v1/mtr/consultas/{id}/geo`
+
+Solicita ou consulta a geolocalização dos
+saltos de um diagnóstico MTR concluído.
+
+**Autenticação:** obrigatória.
+
+**Limite:** 10 requisições por minuto.
+
+O parâmetro `id` deve ser numérico.
+
+A consulta MTR deve pertencer ao usuário
+autenticado e possuir status `concluido`.
+
+A geolocalização é executada em segundo
+plano pelo job `ExecutarGeoIpSaltos`.
+
+**Processamento pendente — HTTP 202:**
+
+~~~json
+{
+  "status": "pendente"
+}
+~~~
+
+Essa resposta pode ocorrer quando a tarefa
+GeoIP acaba de ser criada ou ainda está
+aguardando processamento.
+
+**Resultado disponível — HTTP 200:**
+
+~~~json
+{
+  "status": "concluido",
+  "saltos": [
+    {
+      "salto": 1,
+      "ip": "192.168.1.1",
+      "perda_pct": 0,
+      "enviados": 3,
+      "ultima_ms": 1.5,
+      "media_ms": 1.7,
+      "melhor_ms": 1.4,
+      "pior_ms": 2.2,
+      "geo": null
+    },
+    {
+      "salto": 2,
+      "ip": "1.1.1.1",
+      "perda_pct": 0,
+      "enviados": 3,
+      "ultima_ms": 12.5,
+      "media_ms": 12.8,
+      "melhor_ms": 12.1,
+      "pior_ms": 13.8,
+      "geo": {
+        "ip": "1.1.1.1",
+        "pais": "Australia",
+        "codigo_pais": "AU",
+        "cidade": "Sydney",
+        "latitude": -33.8688,
+        "longitude": 151.2093,
+        "asn": null,
+        "organizacao": null
+      }
+    }
+  ]
+}
+~~~
+
+Os endereços, as métricas e a localização
+são exemplos ilustrativos. A localização
+real depende da resposta do provedor GeoIP.
+
+O campo `geo` é acrescentado aos saltos
+sem remover suas métricas originais.
+
+**Campos geográficos:**
+
+| Campo | Descrição |
+|---|---|
+| `ip` | Endereço IP geolocalizado. |
+| `pais` | Nome do país. |
+| `codigo_pais` | Código do país. |
+| `cidade` | Nome da cidade. |
+| `latitude` | Latitude geográfica. |
+| `longitude` | Longitude geográfica. |
+| `asn` | Número do sistema autônomo, quando disponível. |
+| `organizacao` | Organização da rede, quando disponível. |
+
+Os campos opcionais podem receber `null`
+quando o provedor não fornece o dado.
+
+**Saltos sem geolocalização:**
+
+Quando o salto não possui um IP válido,
+o endereço é privado ou reservado, ou
+não existe localização disponível,
+o campo `geo` permanece `null`.
+
+A ausência de localização não remove
+o salto nem suas métricas.
+
+**Diagnóstico não concluído — HTTP 409:**
+
+~~~json
+{
+  "message": "O diagnóstico ainda não está concluído."
+}
+~~~
+
+**Falha no processamento — HTTP 503:**
+
+~~~json
+{
+  "status": "erro",
+  "message": "Não foi possível processar a geolocalização."
+}
+~~~
+
+**Outros códigos HTTP:**
+
+| Código | Significado |
+|---|---|
+| `401` | Usuário não autenticado. |
+| `404` | Consulta inexistente ou de outro usuário. |
+| `429` | Limite de requisições excedido. |
+
+**Cache e processamento:**
+
+O sistema utiliza cache para evitar
+processamentos repetidos desnecessários.
+
+A reserva inicial da tarefa GeoIP
+possui validade de dez minutos.
+
+Os resultados concluídos são armazenados
+por seis horas.
+
+Os resultados com erro são armazenados
+por dois minutos.
+
+As localizações válidas obtidas pelo
+serviço `GeoIpService` são armazenadas
+separadamente por um dia.
+
+O serviço consulta o provedor `ipwho.is`
+utilizando HTTPS.
+
+A requisição externa possui limite de
+cinco segundos e não segue redirecionamentos.
+
+O job possui uma tentativa configurada
+e timeout de 90 segundos.
+
+A execução utiliza locks e identificadores
+de tentativa para proteger o cache contra
+atualizações de tarefas antigas.
+
+O identificador interno da tentativa
+não é exposto na resposta da API.
+
+A geolocalização não modifica os saltos
+originais armazenados na consulta MTR.
