@@ -998,3 +998,282 @@ mas seus detalhes não são expostos na resposta.
 O código HTTP da API deve ser diferenciado
 do campo `status_http`, que representa a
 resposta recebida do servidor consultado.
+
+## 12. Diagnósticos TCP
+
+O PingMap disponibiliza uma API para verificar
+conexões TCP com endereços IP públicos.
+
+As consultas são executadas de forma assíncrona,
+utilizando uma tarefa na fila do Laravel.
+
+### 12.1. Endpoints e criação de consultas
+
+**Endpoints disponíveis:**
+
+| Método | Endpoint | Finalidade |
+|---|---|---|
+| `POST` | `/api/v1/tcp/consultas` | Criar consulta TCP |
+| `GET` | `/api/v1/tcp/consultas` | Listar consultas |
+| `GET` | `/api/v1/tcp/consultas/{id}` | Consultar resultado |
+
+**Autenticação:** obrigatória em todas as rotas.
+
+**Limites de requisições:**
+
+- POST: 10 requisições por minuto.
+- GET: 60 requisições por minuto.
+
+**Parâmetros para criar uma consulta:**
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `destino` | string | IPv4 ou IPv6 público, máximo de 45 caracteres |
+| `porta` | integer | Porta TCP permitida: 80 ou 443 |
+
+Ambos os parâmetros são obrigatórios.
+
+Endereços IP privados ou não permitidos
+são rejeitados pela validação do serviço.
+
+**Exemplo de requisição POST:**
+
+~~~json
+{
+  "destino": "1.1.1.1",
+  "porta": 443
+}
+~~~
+
+**Exemplo ilustrativo de resposta HTTP 202:**
+
+~~~json
+{
+  "id": 1,
+  "destino": "1.1.1.1",
+  "porta": 443,
+  "status": "pendente"
+}
+~~~
+
+O código HTTP 202 indica que a consulta
+foi aceita e enviada para processamento.
+
+Ele não significa que a conexão TCP
+já foi estabelecida com sucesso.
+
+O identificador retornado pode ser utilizado
+para consultar posteriormente o resultado.
+
+### 12.2. Listagem de consultas TCP
+
+**Endpoint:** `GET /api/v1/tcp/consultas`
+
+**Autenticação:** obrigatória.
+
+**Limite:** 60 requisições por minuto.
+
+A API retorna as 20 consultas mais recentes
+do usuário autenticado, ordenadas por ID
+do maior para o menor.
+
+**Exemplo ilustrativo de resposta HTTP 200:**
+
+~~~json
+[
+  {
+    "id": 2,
+    "destino": "8.8.8.8",
+    "porta": 80,
+    "status": "recusado",
+    "tempo_ms": 39.351,
+    "created_at": "2026-10-25T18:00:00.000000Z"
+  },
+  {
+    "id": 1,
+    "destino": "1.1.1.1",
+    "porta": 443,
+    "status": "pendente",
+    "tempo_ms": null,
+    "created_at": "2026-10-25T17:00:00.000000Z"
+  }
+]
+~~~
+
+Os valores apresentados são ilustrativos.
+
+**Campos retornados:**
+
+| Campo | Descrição |
+|---|---|
+| `id` | Identificador da consulta |
+| `destino` | Endereço IP consultado |
+| `porta` | Porta TCP utilizada |
+| `status` | Estado atual da consulta |
+| `tempo_ms` | Tempo em milissegundos ou `null` |
+| `created_at` | Data de criação |
+
+A resposta é um array JSON.
+
+Quando não existem consultas, retorna `[]`.
+
+Cada usuário visualiza somente suas consultas.
+
+O endpoint não possui paginação e retorna
+no máximo 20 registros.
+
+### 12.3. Consulta TCP por identificador
+
+**Endpoint:** `GET /api/v1/tcp/consultas/{id}`
+
+**Autenticação:** obrigatória.
+
+**Limite:** 60 requisições por minuto.
+
+O parâmetro `id` deve ser numérico.
+
+O endpoint retorna os detalhes de uma
+consulta pertencente ao usuário autenticado.
+
+**Exemplo de requisição:**
+
+~~~text
+GET /api/v1/tcp/consultas/1
+~~~
+
+**Exemplo ilustrativo de resposta HTTP 200:**
+
+~~~json
+{
+  "id": 1,
+  "destino": "1.1.1.1",
+  "porta": 443,
+  "status": "conectado",
+  "tempo_ms": 39.351,
+  "erro": null,
+  "created_at": "2026-10-25T17:00:00.000000Z",
+  "updated_at": "2026-10-25T17:00:01.000000Z"
+}
+~~~
+
+**Campos retornados:**
+
+| Campo | Descrição |
+|---|---|
+| `id` | Identificador da consulta |
+| `destino` | Endereço IP consultado |
+| `porta` | Porta TCP utilizada |
+| `status` | Estado da consulta |
+| `tempo_ms` | Tempo da tentativa de conexão em milissegundos, ou `null` |
+| `erro` | Mensagem de falha operacional, ou `null` |
+| `created_at` | Data de criação |
+| `updated_at` | Data da última atualização |
+
+**Estados possíveis:**
+
+| Estado | Significado |
+|---|---|
+| `pendente` | Aguardando processamento |
+| `executando` | Job iniciou a execução |
+| `conectado` | Conexão TCP estabelecida |
+| `recusado` | Conexão recusada |
+| `timeout` | Tentativa de conexão expirou |
+| `erro` | Falha durante a verificação |
+
+**Resposta HTTP 404:**
+
+A API retorna 404 quando a consulta
+não existe ou pertence a outro usuário.
+
+O acesso aos resultados é restrito
+ao proprietário de cada consulta.
+
+A consulta pode ser realizada novamente
+para acompanhar a atualização do status.
+
+### 12.4. Segurança e tratamento de erros
+
+A API TCP aplica validações antes de criar
+uma consulta e executar a conexão.
+
+**Restrições de segurança:**
+
+- Autenticação obrigatória.
+- Aceita apenas endereços IPv4 e IPv6 públicos.
+- Não aceita nomes de domínio como destino.
+- Permite somente as portas TCP 80 e 443.
+- Cada consulta pertence ao usuário que a criou.
+- O histórico e os resultados são isolados por usuário.
+- A execução ocorre por meio de um job na fila.
+
+**Limites de execução:**
+
+| Configuração | Valor |
+|---|---|
+| Timeout da conexão TCP | 2 segundos |
+| Timeout do job | 15 segundos |
+| Tentativas do job | 1 |
+| Criação de consultas | 10 requisições/minuto |
+| Listagem e consulta por ID | 60 requisições/minuto |
+
+**Códigos HTTP:**
+
+| Código | Significado |
+|---|---|
+| `200` | Consulta ou listagem realizada |
+| `202` | Consulta criada e aceita para processamento |
+| `401` | Usuário não autenticado |
+| `404` | Consulta inexistente ou não pertencente ao usuário |
+| `422` | Dados de entrada inválidos ou não permitidos |
+| `429` | Limite de requisições excedido |
+
+**Exemplo de erro HTTP 422 — porta não permitida:**
+
+~~~json
+{
+  "message": "Porta TCP não permitida."
+}
+~~~
+
+**Exemplo de erro HTTP 422 — destino não permitido:**
+
+~~~json
+{
+  "message": "Destino não permitido."
+}
+~~~
+
+Campos obrigatórios ausentes, tipos incorretos
+e portas fora do intervalo de 1 a 65535
+também produzem erros de validação HTTP 422.
+
+Esses erros de validação utilizam a estrutura
+padrão do Laravel, com `message` e `errors`.
+
+**Processamento assíncrono:**
+
+Ao criar uma consulta, o registro recebe
+o status inicial `pendente`.
+
+O job `ExecutarConsultaTcp` altera o status
+para `executando` antes da tentativa de conexão.
+
+O resultado pode assumir os estados:
+
+- `conectado`
+- `recusado`
+- `timeout`
+- `erro`
+
+O campo `tempo_ms` registra o tempo medido
+da tentativa de conexão quando disponível.
+
+Em caso de exceção durante a execução,
+o job registra o status `erro`, define
+`tempo_ms` como `null` e utiliza a mensagem
+genérica `Falha ao executar consulta TCP.`.
+
+O diagnóstico verifica a possibilidade de
+estabelecer uma conexão TCP com a porta
+informada. Ele não realiza uma requisição
+HTTP nem uma análise de certificado TLS.
