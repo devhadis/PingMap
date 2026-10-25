@@ -183,6 +183,21 @@
         >
             <h2>Resultado da consulta</h2>
             <div id="rdap-dados"></div>
+
+            <button
+                id="rdap-bgp-consultar"
+                class="rdap-button"
+                type="button"
+                hidden
+            >
+                Consultar BGP deste IP
+            </button>
+
+            <div id="rdap-bgp-resultado" hidden>
+                <h3>Informações BGP</h3>
+                <p id="rdap-bgp-mensagem" role="status"></p>
+                <div id="rdap-bgp-dados"></div>
+            </div>
         </section>
 
     </main>
@@ -196,11 +211,137 @@ document.addEventListener('DOMContentLoaded', () => {
     const painel = document.getElementById('rdap-resultado');
     const dados = document.getElementById('rdap-dados');
 
+
+    const botaoBgp = document.getElementById('rdap-bgp-consultar');
+    const painelBgp = document.getElementById('rdap-bgp-resultado');
+    const mensagemBgp = document.getElementById('rdap-bgp-mensagem');
+    const dadosBgp = document.getElementById('rdap-bgp-dados');
+
+    let ipRdap = null;
+    let geracao = 0;
+
+    botaoBgp.addEventListener('click', async () => {
+        if (!ipRdap || botaoBgp.disabled) {
+            return;
+        }
+
+        const ip = ipRdap;
+        const geracaoAtual = geracao;
+        const token = form.querySelector('[name="_token"]').value;
+
+        botaoBgp.disabled = true;
+        painelBgp.hidden = false;
+        dadosBgp.replaceChildren();
+        mensagemBgp.textContent = 'Consultando BGP...';
+
+        try {
+            const resposta = await fetch('/api/v1/bgp/rede/consultas', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token
+                },
+                body: JSON.stringify({ alvo: ip })
+            });
+
+            const conteudo = await resposta.json()
+                .catch(() => ({}));
+
+            if (geracaoAtual !== geracao) {
+                return;
+            }
+
+            if (!resposta.ok) {
+                const erros = {
+                    401: 'Faça login para consultar BGP.',
+                    419: 'Sessão expirada. Atualize a página.',
+                    422: 'IP inválido para consulta BGP.',
+                    429: 'Limite de consultas BGP atingido.',
+                    503: 'Serviço BGP indisponível.'
+                };
+
+                throw new Error(
+                    erros[resposta.status] ||
+                    'Não foi possível consultar o BGP.'
+                );
+            }
+
+            const resultado = conteudo.resultado;
+
+            if (
+                !resultado ||
+                typeof resultado !== 'object' ||
+                Array.isArray(resultado) ||
+                resultado.tipo !== 'ip' ||
+                !Array.isArray(resultado.asns)
+            ) {
+                throw new Error('Resposta BGP inesperada.');
+            }
+
+            const campos = [
+                ['IP consultado', resultado.consulta],
+                ['Prefixo BGP', resultado.prefixo],
+                [
+                    'ASNs de origem',
+                    resultado.asns.join(', ')
+                ],
+                [
+                    'Anunciado',
+                    typeof resultado.anunciado === 'boolean'
+                        ? (resultado.anunciado ? 'Sim' : 'Não')
+                        : null
+                ]
+            ];
+
+            for (const [titulo, informacao] of campos) {
+                const linha = document.createElement('p');
+                const rotulo = document.createElement('strong');
+                const valor = document.createElement('span');
+
+                rotulo.textContent = titulo + ': ';
+
+                valor.textContent =
+                    informacao !== null &&
+                    informacao !== undefined &&
+                    String(informacao).trim() !== ''
+                        ? String(informacao)
+                        : 'Não informado';
+
+                linha.append(rotulo, valor);
+                dadosBgp.appendChild(linha);
+            }
+
+            mensagemBgp.textContent = 'Consulta BGP concluída.';
+
+        } catch (erro) {
+            if (geracaoAtual === geracao) {
+                mensagemBgp.textContent =
+                    erro instanceof Error
+                        ? erro.message
+                        : 'Falha inesperada na consulta BGP.';
+            }
+        } finally {
+            if (geracaoAtual === geracao) {
+                botaoBgp.disabled = false;
+            }
+        }
+    });
+
     form.addEventListener('submit', async (evento) => {
         evento.preventDefault();
 
         const ip = document.getElementById('rdap-ip').value.trim();
         const token = form.querySelector('[name="_token"]').value;
+
+        geracao++;
+        ipRdap = null;
+        botaoBgp.hidden = true;
+        botaoBgp.disabled = false;
+        painelBgp.hidden = true;
+        dadosBgp.replaceChildren();
+        mensagemBgp.textContent = '';
 
         botao.disabled = true;
         painel.hidden = true;
@@ -278,6 +419,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             painel.hidden = false;
             mensagem.textContent = 'Consulta concluída.';
+
+            ipRdap = ip;
+            botaoBgp.hidden = false;
 
         } catch (erro) {
             mensagem.classList.add('error');
