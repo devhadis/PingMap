@@ -1,9 +1,9 @@
 # PingMap — Etapa 112: Integração RDAP + BGP
 
-**Projeto:** PingMap  
-**Tecnologias:** PHP 8.4, Laravel 13, JavaScript e Docker  
-**Commit:** `24bece1`  
-**Status:** Implementado e testado
+- **Projeto:** PingMap
+- **Tecnologias:** PHP 8.4, Laravel 13, JavaScript e Docker
+- **Commit:** `24bece1`
+- **Status:** Implementado e testado
 
 ## 1. Objetivo
 
@@ -30,8 +30,8 @@ O fluxo da aplicação é:
 
 ### RDAP
 
-**Método:** POST  
-**Rota:** `/api/v1/rdap/consultas`
+- **Método:** POST
+- **Rota:** `/api/v1/rdap/consultas`
 
 Exemplo de requisição:
 
@@ -43,8 +43,8 @@ Exemplo de requisição:
 
 ### BGP
 
-**Método:** POST  
-**Rota:** `/api/v1/bgp/rede/consultas`
+- **Método:** POST
+- **Rota:** `/api/v1/bgp/rede/consultas`
 
 Exemplo de requisição:
 
