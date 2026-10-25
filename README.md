@@ -112,6 +112,33 @@ Os componentes são executados em contêineres Docker,
 facilitando o isolamento dos serviços e a manutenção
 do ambiente de desenvolvimento.
 
+
+### Serviços Docker
+
+O ambiente de desenvolvimento utiliza cinco serviços
+gerenciados pelo Docker Compose:
+
+| Serviço | Responsabilidade |
+|---|---|
+| `app` | Aplicação Laravel com PHP 8.4-FPM |
+| `nginx` | Servidor HTTP e encaminhamento FastCGI |
+| `db` | Persistência de dados com PostgreSQL 17 |
+| `redis` | Cache e infraestrutura de filas |
+| `worker` | Processamento assíncrono de tarefas Laravel |
+
+O PostgreSQL e o Redis utilizam volumes nomeados
+para persistência de dados.
+
+No ambiente Docker Compose atual, a aplicação é
+publicada apenas no loopback do host, na porta 8080.
+
+A infraestrutura inclui verificações de saúde
+para PostgreSQL e Redis e políticas de reinicialização
+dos contêineres.
+
+**Documentação técnica:**
+[Arquitetura Docker e DevOps](docs/arquitetura-docker-devops.md)
+
 ---
 
 ## Executando o projeto
