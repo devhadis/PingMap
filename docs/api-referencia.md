@@ -774,3 +774,227 @@ redirecionamento ou erro HTTP 401, conforme
 a negociação de resposta do Laravel.
 
 Falhas na verificação CSRF podem gerar HTTP 419.
+
+## 11. Diagnóstico HTTP e TLS
+
+O PingMap disponibiliza uma API para consultar
+informações HTTP e TLS de domínios públicos.
+
+O serviço realiza uma requisição HEAD utilizando
+HTTPS e retorna metadados da conexão.
+
+### 11.1. Endpoint e parâmetros
+
+**Endpoint:** `POST /api/v1/http-tls/consultas`
+
+**Autenticação:** obrigatória.
+
+**Limite:** 10 requisições por minuto.
+
+**Parâmetro obrigatório:**
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `dominio` | string | Domínio público, máximo de 253 caracteres |
+
+**Exemplo de requisição:**
+
+~~~json
+{
+  "dominio": "example.com"
+}
+~~~
+
+O domínio é validado e normalizado antes da consulta.
+
+A consulta é síncrona e utiliza HTTPS.
+
+### 11.2. Resposta da consulta HTTP/TLS
+
+Quando a consulta é concluída, a API retorna
+HTTP 200 com os dados dentro de `resultado`.
+
+**Exemplo ilustrativo de resposta HTTP 200:**
+
+~~~json
+{
+  "resultado": {
+    "dominio": "example.com",
+    "ips": [
+      "8.8.8.8"
+    ],
+    "ip_conectado": "8.8.8.8",
+    "status_http": 200,
+    "tempo_ms": 120.5,
+    "cabecalhos": {
+      "content-type": "text/html"
+    },
+    "certificado": {
+      "assunto": "CN = example.com",
+      "emissor": "CN = AC de teste",
+      "dominios": [
+        "example.com"
+      ],
+      "inicio_validade": "2026-09-26T22:49:11+00:00",
+      "fim_validade": "2026-12-25T22:56:35+00:00",
+      "algoritmo_assinatura": "ecdsa-with-SHA256",
+      "certificados_na_cadeia": 2,
+      "dias_restantes": 62,
+      "expirado": false,
+      "alerta_expiracao": false
+    }
+  }
+}
+~~~
+
+Os valores apresentados são dados simulados
+utilizados nos testes automatizados do PingMap.
+
+**Campos principais:**
+
+| Campo | Descrição |
+|---|---|
+| `dominio` | Domínio normalizado |
+| `ips` | IPs públicos resolvidos |
+| `ip_conectado` | IP utilizado na conexão HTTPS |
+| `status_http` | Código HTTP retornado pelo destino |
+| `tempo_ms` | Tempo total da consulta, em milissegundos |
+| `cabecalhos` | Cabeçalhos HTTP selecionados |
+| `certificado` | Metadados TLS ou `null` quando indisponíveis |
+
+O código `status_http` pertence ao servidor
+consultado e não deve ser confundido com o
+código HTTP da resposta da API PingMap.
+
+### 11.3. Certificado TLS e cabeçalhos HTTP
+
+O campo `certificado` apresenta os metadados
+obtidos da conexão HTTPS.
+
+Quando os metadados do certificado estão
+indisponíveis, o campo recebe `null`.
+
+**Campos do certificado:**
+
+| Campo | Descrição |
+|---|---|
+| `assunto` | Identificação do titular do certificado |
+| `emissor` | Autoridade ou entidade emissora |
+| `dominios` | Nomes de domínio informados no certificado |
+| `inicio_validade` | Início do período de validade |
+| `fim_validade` | Fim do período de validade |
+| `algoritmo_assinatura` | Algoritmo de assinatura informado |
+| `certificados_na_cadeia` | Quantidade de certificados na cadeia |
+| `dias_restantes` | Dias restantes de validade |
+| `expirado` | Indica se o certificado está expirado |
+| `alerta_expiracao` | Indica alerta de proximidade da expiração |
+
+Os campos de validade utilizam datas e horários
+interpretados pelo serviço de certificados TLS.
+
+O cálculo dos dias restantes e do alerta de
+expiração é realizado pelo parser do certificado.
+
+**Cabeçalhos HTTP:**
+
+O PingMap retorna somente os cabeçalhos
+permitidos pelo serviço:
+
+- `content-type`
+- `server`
+- `location`
+- `strict-transport-security`
+- `content-security-policy`
+- `x-frame-options`
+- `x-content-type-options`
+- `referrer-policy`
+- `cache-control`
+
+Cabeçalhos ausentes não são incluídos na resposta.
+
+Os valores apresentados têm caracteres de
+controle removidos e são limitados a 512 bytes.
+
+A presença de um cabeçalho não garante,
+isoladamente, que o servidor esteja seguro.
+
+### 11.4. Segurança e tratamento de erros
+
+A API HTTP/TLS utiliza mecanismos de proteção
+para restringir as conexões realizadas pelo servidor.
+
+**Proteções configuradas:**
+
+- Autenticação Laravel obrigatória.
+- Limite de 10 requisições por minuto.
+- Validação e normalização do domínio informado.
+- Validação dos endereços IP resolvidos.
+- Conexão restrita ao protocolo HTTPS.
+- Verificação do certificado TLS habilitada.
+- Redirecionamentos HTTP desabilitados.
+- Utilização de proxy desabilitada.
+- Uso de cURL para fixar os IPs aprovados.
+- Validação do IP efetivamente conectado.
+- Timeout de conexão de 3 segundos.
+- Timeout total da requisição de 8 segundos.
+- Remoção de caracteres de controle dos cabeçalhos.
+- Limite de 512 bytes por valor de cabeçalho.
+
+Essas medidas reduzem os riscos associados
+a consultas de destinos não autorizados.
+
+**Validação do certificado TLS:**
+
+O parser verifica os campos e as datas do
+certificado e aceita cadeias de até 16 certificados.
+
+O resultado contém somente os metadados
+necessários, sem expor o certificado PEM completo.
+
+O campo `expirado` indica se o certificado
+atingiu ou ultrapassou a data de expiração.
+
+O campo `alerta_expiracao` é verdadeiro quando
+restam 30 dias ou menos de validade, incluindo
+certificados já expirados.
+
+**Códigos HTTP da API:**
+
+| Código | Significado |
+|---|---|
+| `200` | Consulta concluída |
+| `401` | Requisição JSON sem autenticação |
+| `422` | Domínio inválido ou destino não permitido |
+| `429` | Limite de requisições excedido |
+| `503` | Falha ao concluir a consulta HTTP/TLS |
+
+Falhas de verificação CSRF também podem
+produzir HTTP 419 quando essa proteção é aplicada.
+
+**Exemplo de erro HTTP 422:**
+
+~~~json
+{
+  "message": "Domínio inválido.",
+  "errors": {
+    "dominio": [
+      "Informe um domínio público válido."
+    ]
+  }
+}
+~~~
+
+**Exemplo de erro HTTP 503:**
+
+~~~json
+{
+  "message": "Não foi possível concluir a consulta HTTP/TLS."
+}
+~~~
+
+Erros inesperados são registrados internamente,
+mas seus detalhes não são expostos na resposta.
+
+O código HTTP da API deve ser diferenciado
+do campo `status_http`, que representa a
+resposta recebida do servidor consultado.
