@@ -11,7 +11,7 @@ Route::prefix('api/v1/mtr')
         Route::post('/consultas', [
             MtrConsultaController::class,
             'store',
-        ])->middleware('throttle:10,1');
+        ])->middleware('throttle:10,1,mtr-criacao');
 
         Route::get('/consultas', [
             MtrConsultaController::class,
@@ -28,5 +28,5 @@ Route::prefix('api/v1/mtr')
             GeoIpSaltosController::class,
             'mtr',
         ])->whereNumber('id')
-          ->middleware('throttle:10,1');
+          ->middleware('throttle:10,1,mtr-geo');
 });

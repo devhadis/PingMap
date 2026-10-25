@@ -11,7 +11,7 @@ Route::prefix('api/v1/traceroute')
         Route::post('/consultas', [
             TracerouteConsultaController::class,
             'store',
-        ])->middleware('throttle:10,1');
+        ])->middleware('throttle:10,1,traceroute-criacao');
 
         Route::get('/consultas', [
             TracerouteConsultaController::class,
@@ -28,5 +28,5 @@ Route::prefix('api/v1/traceroute')
             GeoIpSaltosController::class,
             'traceroute',
         ])->whereNumber('id')
-          ->middleware('throttle:10,1');
+          ->middleware('throttle:10,1,traceroute-geo');
 });
