@@ -248,7 +248,7 @@
             >
         </div>
 
-        <button id="mtr-submit" class="mtr-button" type="submit">
+        <button id="mtr-submit" class="mtr-button" type="submit" disabled>
             Executar MTR
         </button>
     </form>
@@ -707,6 +707,8 @@ import { criarControleMtr } from "/js/mtr-controle.js";
         });
 
     void carregarHistorico(true);
+    // Liberar o botão após registrar os eventos.
+    submit.disabled = false;
 })();
 </script>
 

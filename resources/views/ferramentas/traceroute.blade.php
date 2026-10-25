@@ -241,7 +241,7 @@
             >
         </div>
 
-        <button id="trace-submit" class="trace-button" type="submit">
+        <button id="trace-submit" class="trace-button" type="submit" disabled>
             Executar Traceroute
         </button>
     </form>
@@ -719,6 +719,8 @@ import { calcularIndicadoresRota } from "/js/traceroute-indicadores.js";
     });
 
     void carregarHistorico(true);
+    // Liberar o botão após registrar os eventos.
+    submit.disabled = false;
 })();
 </script>
 
