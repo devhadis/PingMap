@@ -320,3 +320,203 @@ Controllers:
 - Incluir exemplos completos de integração;
 - Documentar contratos de respostas assíncronas;
 - Consolidar exemplos de erros de validação.
+
+## 9. Consultas DNS e DNSSEC
+
+O PingMap disponibiliza quatro endpoints para consultas DNS
+e análises DNSSEC.
+
+Todas as rotas exigem autenticação Laravel e utilizam
+proteção CSRF nas requisições POST.
+
+### 9.1. Criar consulta DNS
+
+**Endpoint:** `POST /api/v1/dns/consultas`
+
+**Limite:** 10 requisições por minuto.
+
+A API cria uma consulta DNS no banco de dados e envia
+um Job para processamento assíncrono.
+
+**Parâmetros obrigatórios:**
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `dominio` | string | Domínio público, máximo de 253 caracteres |
+| `tipo` | string | Tipo DNS, máximo de 8 caracteres |
+
+Tipos permitidos: A, AAAA, MX, TXT, NS, CNAME,
+SOA, PTR e CAA.
+
+Consultas PTR exigem um endereço IP público permitido.
+
+**Exemplo de requisição:**
+
+~~~json
+{
+  "dominio": "cloudflare.com",
+  "tipo": "A"
+}
+~~~
+
+**Resposta HTTP 202:**
+
+~~~json
+{
+  "id": 123,
+  "dominio": "cloudflare.com",
+  "tipo": "A",
+  "status": "pendente"
+}
+~~~
+
+O ID é ilustrativo.
+
+A resposta 202 confirma a criação da consulta,
+mas não significa que o processamento DNS terminou.
+
+**Erros possíveis:**
+
+- HTTP 422: parâmetros inválidos ou domínio não permitido.
+- HTTP 429: limite de requisições excedido.
+
+### 9.2. Listar consultas DNS
+
+**Endpoint:** `GET /api/v1/dns/consultas`
+
+**Limite:** 60 requisições por minuto.
+
+Retorna as últimas 20 consultas DNS do usuário
+autenticado, ordenadas pelo ID mais recente.
+
+**Resposta HTTP 200:**
+
+~~~json
+[
+  {
+    "id": 123,
+    "dominio": "cloudflare.com",
+    "tipo": "A",
+    "status": "pendente",
+    "quantidade": null,
+    "created_at": "2026-10-25T12:00:00.000000Z"
+  }
+]
+~~~
+
+Os valores são ilustrativos.
+
+A resposta é um array JSON. Quando o usuário
+não possui consultas, o resultado é `[]`.
+
+**Erros possíveis:**
+
+- HTTP 429: limite de requisições excedido.
+
+
+### 9.3. Consultar resultado DNS
+
+**Endpoint:** `GET /api/v1/dns/consultas/{id}`
+
+**Limite:** 60 requisições por minuto.
+
+Retorna os detalhes de uma consulta DNS pertencente
+ao usuário autenticado.
+
+O parâmetro `id` deve ser numérico.
+
+**Resposta HTTP 200:**
+
+~~~json
+{
+  "id": 123,
+  "dominio": "cloudflare.com",
+  "tipo": "A",
+  "status": "sem_registros",
+  "quantidade": 0,
+  "registros": [],
+  "erro": null,
+  "created_at": "2026-10-25T12:00:00.000000Z",
+  "updated_at": "2026-10-25T12:00:01.000000Z"
+}
+~~~
+
+Os valores apresentados são ilustrativos.
+
+**Estados possíveis:**
+
+| Estado | Significado |
+|---|---|
+| `pendente` | Aguardando processamento |
+| `executando` | Consulta em andamento |
+| `sucesso` | Registros DNS encontrados |
+| `sem_registros` | Nenhum registro encontrado |
+| `erro` | Falha no processamento |
+
+O campo `registros` contém os resultados DNS.
+Sua estrutura depende do tipo de registro consultado.
+
+Os campos `quantidade`, `registros` e `erro`
+podem ser nulos conforme o estado da consulta.
+
+**Erros possíveis:**
+
+- HTTP 404: consulta inexistente ou de outro usuário.
+- HTTP 429: limite de requisições excedido.
+
+### 9.4. Analisar segurança DNSSEC
+
+**Endpoint:** `POST /api/v1/dnssec/analises`
+
+**Limite:** 10 requisições por minuto.
+
+Analisa a validação DNSSEC de um domínio público.
+
+**Parâmetro obrigatório:**
+
+- `dominio`: string, máximo de 253 caracteres.
+
+**Exemplo de requisição:**
+
+~~~json
+{
+  "dominio": "cloudflare.com"
+}
+~~~
+
+**Resposta HTTP 200:**
+
+~~~json
+{
+  "resultado": {
+    "dominio": "cloudflare.com",
+    "tipo": "A",
+    "estado": "seguro"
+  }
+}
+~~~
+
+O estado apresentado é ilustrativo.
+
+**Estados possíveis:**
+
+| Estado | Significado |
+|---|---|
+| `seguro` | Validação confirmada com registro A válido |
+| `inseguro` | Resposta DNS não assinada |
+| `indeterminado` | Validação não pôde ser confirmada |
+
+O validador DNSSEC utiliza o utilitário `delv`,
+com resolvedor `1.1.1.1` e timeout de 12 segundos.
+
+**Erros possíveis:**
+
+- HTTP 422: domínio inválido ou não permitido.
+- HTTP 503: falha ao concluir a análise DNSSEC.
+- HTTP 429: limite de requisições excedido.
+
+**Segurança:**
+
+- Autenticação Laravel obrigatória.
+- Proteção CSRF para requisições POST.
+- Validação do domínio antes da consulta externa.
