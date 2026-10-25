@@ -520,3 +520,257 @@ com resolvedor `1.1.1.1` e timeout de 12 segundos.
 - Autenticação Laravel obrigatória.
 - Proteção CSRF para requisições POST.
 - Validação do domínio antes da consulta externa.
+
+## 10. Segurança de e-mail: SPF, DKIM e DMARC
+
+O PingMap oferece um endpoint para analisar registros
+DNS relacionados à segurança de e-mail.
+
+As análises consultam registros TXT publicados no DNS.
+Elas não verificam a autenticação de uma mensagem
+de e-mail específica.
+
+### 10.1. Endpoint e parâmetros
+
+**Endpoint:** `POST /api/v1/email/analises`
+
+**Autenticação:** obrigatória.
+
+**Limite:** 10 requisições por minuto.
+
+**Parâmetros:**
+
+| Campo | Obrigatório | Descrição |
+|---|---|---|
+| `dominio` | Sim | Domínio público, máximo de 253 caracteres |
+| `tipo` | Sim | SPF, DKIM ou DMARC |
+| `seletor` | Para DKIM | Seletor de até 63 caracteres |
+
+O campo `tipo` deve ser enviado em letras maiúsculas.
+
+O seletor DKIM aceita letras, números e hífens,
+respeitando as regras de validação do controller.
+
+**Exemplo de requisição SPF:**
+
+~~~json
+{
+  "dominio": "example.com",
+  "tipo": "SPF"
+}
+~~~
+
+A análise é executada durante a própria requisição.
+
+### 10.2. Análise SPF
+
+Para executar uma análise SPF, envie `tipo` como `SPF`.
+
+O serviço consulta registros TXT do domínio e
+identifica os registros iniciados por `v=spf1`.
+
+**Exemplo de resposta HTTP 200:**
+
+~~~json
+{
+  "resultado": {
+    "dominio": "example.com",
+    "tipo": "SPF",
+    "status": "presente",
+    "quantidade": 1,
+    "politica": "fail",
+    "registros": [
+      "v=spf1 -all"
+    ]
+  }
+}
+~~~
+
+O exemplo é ilustrativo e não representa
+uma consulta DNS executada.
+
+**Estados possíveis:**
+
+| Estado | Significado |
+|---|---|
+| `ausente` | Nenhum registro SPF encontrado |
+| `presente` | Um registro SPF encontrado |
+| `multiplo` | Mais de um registro SPF encontrado |
+
+**Políticas identificadas:**
+
+| Política | Mecanismo SPF |
+|---|---|
+| `fail` | `-all` |
+| `softfail` | `~all` |
+| `neutral` | `?all` |
+| `pass` | `+all` ou `all` |
+| `nao_definida` | Sem mecanismo `all` reconhecido |
+
+O campo `politica` pode ser nulo quando
+não existe exatamente um registro SPF.
+
+### 10.3. Análise DKIM
+
+Para executar uma análise DKIM, envie `tipo`
+como `DKIM` e informe o campo `seletor`.
+
+O serviço consulta registros TXT no endereço
+`seletor._domainkey.dominio`.
+
+**Exemplo de requisição:**
+
+~~~json
+{
+  "dominio": "example.com",
+  "tipo": "DKIM",
+  "seletor": "mail"
+}
+~~~
+
+**Exemplo de resposta HTTP 200:**
+
+~~~json
+{
+  "resultado": {
+    "dominio": "example.com",
+    "seletor": "mail",
+    "nome": "mail._domainkey.example.com",
+    "tipo": "DKIM",
+    "status": "presente",
+    "quantidade": 1,
+    "registros": [
+      "v=DKIM1; k=rsa; p=CHAVE_ILUSTRATIVA"
+    ]
+  }
+}
+~~~
+
+Os dados são ilustrativos.
+A chave apresentada não é uma chave pública real.
+
+**Estados possíveis:**
+
+| Estado | Significado |
+|---|---|
+| `ausente` | Nenhum registro DKIM encontrado |
+| `presente` | Um registro DKIM com campo `p=` preenchido |
+| `invalido` | Um registro DKIM sem campo `p=` preenchido |
+| `multiplo` | Mais de um registro DKIM encontrado |
+
+**Campos da resposta:**
+
+| Campo | Descrição |
+|---|---|
+| `dominio` | Domínio analisado |
+| `seletor` | Seletor DKIM normalizado |
+| `nome` | Nome DNS consultado |
+| `tipo` | Identificação DKIM |
+| `status` | Estado da análise |
+| `quantidade` | Número de registros encontrados |
+| `registros` | Registros DKIM identificados |
+
+O estado `presente` não garante que a chave
+seja criptograficamente válida.
+
+O serviço verifica a presença do campo `p=`,
+mas não valida assinaturas de mensagens.
+
+### 10.4. Análise DMARC
+
+Para executar uma análise DMARC, envie `tipo`
+como `DMARC`.
+
+O serviço consulta registros TXT no endereço
+`_dmarc.dominio` e identifica registros `v=DMARC1`.
+
+**Exemplo de requisição:**
+
+~~~json
+{
+  "dominio": "example.com",
+  "tipo": "DMARC"
+}
+~~~
+
+**Exemplo de resposta HTTP 200:**
+
+~~~json
+{
+  "resultado": {
+    "dominio": "example.com",
+    "tipo": "DMARC",
+    "status": "presente",
+    "politica": "reject",
+    "quantidade": 1,
+    "registros": [
+      "v=DMARC1; p=reject"
+    ]
+  }
+}
+~~~
+
+Os valores apresentados são ilustrativos.
+
+**Estados possíveis:**
+
+| Estado | Significado |
+|---|---|
+| `ausente` | Nenhum registro DMARC encontrado |
+| `presente` | Um registro com política reconhecida |
+| `invalido` | Registro com configuração não aceita |
+| `multiplo` | Mais de um registro DMARC encontrado |
+
+**Políticas reconhecidas:**
+
+| Política | Significado |
+|---|---|
+| `none` | Monitoramento sem solicitar quarentena ou rejeição |
+| `quarantine` | Solicita tratamento como mensagem suspeita |
+| `reject` | Solicita rejeição da mensagem |
+
+O serviço exige que a política `p` esteja
+na segunda posição do registro DMARC.
+
+Também verifica campos duplicados e aceita
+somente as políticas `none`, `quarantine` e `reject`.
+
+O campo `politica` pode ser nulo quando
+o registro está ausente, inválido ou múltiplo.
+
+A análise verifica a configuração DNS publicada,
+mas não autentica mensagens individuais.
+
+### 10.5. Erros e segurança
+
+**Códigos HTTP:**
+
+| Código | Significado |
+|---|---|
+| `200` | Análise concluída |
+| `422` | Parâmetros ou domínio inválidos |
+| `429` | Limite de requisições excedido |
+| `503` | Falha ao concluir a análise DNS |
+
+**Exemplo de erro HTTP 503:**
+
+~~~json
+{
+  "message": "Não foi possível concluir a análise DNS."
+}
+~~~
+
+**Regras de segurança:**
+
+- Autenticação Laravel obrigatória.
+- Proteção CSRF para requisições POST.
+- Limite de 10 requisições por minuto.
+- Validação do domínio antes da consulta DNS.
+- Seletor obrigatório nas análises DKIM.
+- Resposta genérica em falhas inesperadas.
+
+Requisições sem autenticação podem receber
+redirecionamento ou erro HTTP 401, conforme
+a negociação de resposta do Laravel.
+
+Falhas na verificação CSRF podem gerar HTTP 419.
