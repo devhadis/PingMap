@@ -232,7 +232,7 @@
 <section class="mtr-panel" aria-labelledby="mtr-form-title">
     <h2 id="mtr-form-title">Nova consulta</h2>
 
-    <form id="mtr-form" class="mtr-form">
+    <form id="mtr-form" class="mtr-form" method="post" action="{{ url()->current() }}">
         @csrf
 
         <div class="mtr-field">

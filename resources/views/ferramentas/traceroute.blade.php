@@ -224,7 +224,7 @@
 <section class="trace-panel" aria-labelledby="trace-form-title">
     <h2 id="trace-form-title">Nova consulta</h2>
 
-    <form id="trace-form" class="trace-form">
+    <form id="trace-form" class="trace-form" method="post" action="{{ url()->current() }}">
         @csrf
 
         <div class="trace-field">
