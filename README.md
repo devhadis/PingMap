@@ -45,6 +45,22 @@ Para consultas por domínio, a aplicação realiza resolução
 DNS-over-HTTPS, identifica endereços públicos e consulta
 informações BGP dos IPs encontrados.
 
+
+### Integração RDAP + BGP
+
+Após consultar um endereço IP público no RDAP, o usuário
+pode consultar suas informações de roteamento BGP sem
+sair da página.
+
+A integração apresenta prefixo anunciado, ASN de origem
+e estado do anúncio, mantendo os dados RDAP disponíveis.
+
+O fluxo possui testes automatizados para tratamento de
+falhas e respostas assíncronas antigas.
+
+**Documentação técnica:**
+[Integração RDAP + BGP](docs/etapa-112-rdap-bgp.md)
+
 ---
 
 ## Tecnologias
