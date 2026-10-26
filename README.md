@@ -146,27 +146,161 @@ dos contêineres.
 O PingMap possui 22 rotas de API para diagnósticos
 e consultas de rede.
 
-A documentação inicial apresenta os contratos
-das APIs RDAP e BGP, incluindo autenticação,
-parâmetros, exemplos JSON e códigos HTTP.
+A referência reúne os contratos das 22 rotas
+da API, incluindo autenticação, parâmetros,
+exemplos JSON e códigos HTTP.
 
 Consulte a [Referência das APIs](docs/api-referencia.md).
 
 ## Executando o projeto
 
+> **IMPORTANTE:** as instrucoes de instalacao inicial
+> destinam-se a uma copia nova do projeto.
+>
+> Em um ambiente ja configurado, nao substitua o
+> arquivo `.env`, nao gere uma nova `APP_KEY` e nao
+> remova os volumes do Docker.
+
+
 ### Pré-requisitos
 
-- Docker;
-- Docker Compose;
-- Arquivo `.env` configurado;
-- Acesso às dependências externas necessárias.
+- Git para clonar o repositório;
+- Docker Engine e Docker Compose;
+- Acesso à internet para baixar as imagens e dependências;
+- Node.js 24, utilizado por meio de um contêiner Docker;
+- Uma senha PostgreSQL definida no `.env`.
 
-### Iniciar os contêineres
+O PHP 8.4 e o Composer 2 são fornecidos pela imagem
+Docker da aplicação. Não é necessário instalá-los
+diretamente no computador.
+
+O Nginx utiliza a porta `8080`, vinculada ao endereço
+`127.0.0.1` da máquina que executa o Docker.
+
+### Instalação nova: preparar o ambiente
+
+Esta seção destina-se exclusivamente a uma cópia nova
+do repositório. Não execute estas etapas em uma
+instalação já configurada.
+
+**1. Criar o arquivo de configuração**
+
+Na pasta do projeto, execute:
+
+```bash
+test ! -e .env && cp .env.example .env
+```
+
+O comando somente copia o exemplo quando o arquivo
+`.env` ainda não existe.
+
+**2. Configurar o PostgreSQL**
+
+Abra o arquivo:
+
+```bash
+nano .env
+```
+
+Mantenha as configurações PostgreSQL fornecidas pelo
+`.env.example` e defina uma senha forte em
+`DB_PASSWORD`.
+
+Não publique o arquivo `.env` no GitHub.
+
+**3. Validar a configuração e compilar as imagens**
+
+```bash
+docker compose config --quiet
+docker compose build app worker
+```
+
+Esses comandos validam o Docker Compose e preparam
+as imagens PHP 8.4 utilizadas pela aplicação.
+
+**4. Instalar as dependências PHP**
+
+Execute o Composer dentro do contêiner Docker:
+
+```bash
+docker compose run --rm --no-deps app composer install --prefer-dist --no-interaction --no-progress
+```
+
+O Composer utiliza o arquivo `composer.lock` para
+instalar as dependências do Laravel.
+
+**5. Gerar a chave da aplicação**
+
+Em uma instalação nova, gere a `APP_KEY` somente
+se ela ainda estiver vazia:
+
+```bash
+grep -q '^APP_KEY=$' .env && docker compose run --rm --no-deps app php artisan key:generate
+```
+
+Não execute esse procedimento para substituir a
+chave de uma instalação existente.
+
+**6. Instalar e compilar o frontend**
+
+Utilize Node.js 24 em um contêiner temporário:
+
+```bash
+docker run --rm --user "$(id -u):$(id -g)" \
+  -e HOME=/tmp \
+  -e npm_config_cache=/tmp/npm-cache \
+  -v "$PWD:/app" -w /app \
+  node:24-bookworm-slim \
+  sh -c 'npm ci --ignore-scripts --no-audit --no-fund && npm run build'
+```
+
+O comando utiliza o arquivo `package-lock.json` e
+gera os arquivos compilados em `public/build`.
+
+**7. Preparar as permissões do Laravel**
+
+Em uma instalação nova, prepare as pastas de escrita
+e proteja o arquivo `.env`:
+
+```bash
+docker compose run --rm --no-deps app sh -c '
+mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache
+chmod -R ug+rwX storage bootstrap/cache
+chgrp www-data .env
+chmod 640 .env
+'
+```
+
+Essas permissões permitem que o PHP-FPM escreva
+arquivos temporários e leia a configuração da aplicação.
+
+**8. Iniciar os serviços (instalação nova)**
+
+Execute `docker compose up -d db redis app`.
+
+**9. Criar as tabelas (somente instalação nova)**
+
+Execute `docker compose exec -T app php artisan migrate --force`.
+
+**10. Iniciar Nginx e worker**
+
+Execute `docker compose up -d nginx worker`.
+Confira os serviços com `docker compose ps`.
+
+**11. Verificar a aplicação**
+
+Acesse `http://localhost:8080` na máquina que executa o Docker.
+
+Para acesso remoto, utilize um túnel SSH.
+
+
+### Ambiente existente: iniciar os contêineres
 
 Em um ambiente já configurado:
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
 ### Verificar os serviços
@@ -175,10 +309,10 @@ docker compose up -d --build
 docker compose ps
 ```
 
-### Executar as migrações
+### Verificar as migrações existentes
 
 ```bash
-docker compose exec -T app php artisan migrate
+docker compose exec -T app php artisan migrate:status
 ```
 
 ### Acessar a aplicação
@@ -233,17 +367,34 @@ docker compose exec -T app php artisan test
 docker compose exec -T app php artisan test --filter=Bgp
 ```
 
-### Resultado validado no Sprint 43
+### Última validação completa
 
 | Indicador | Resultado |
 |---|---|
-| Testes da aplicação | 728 aprovados |
-| Asserções | 1.598 |
-| Testes BGP | 109 aprovados |
-| Asserções BGP | 237 |
+| Testes Laravel | 791 aprovados |
+| Asserções Laravel | 1.838 |
+| Exemplos JSON da API | 58 válidos |
 
-Esses números representam a execução validada em
-24/10/2026 e podem mudar com a evolução do projeto.
+Os resultados correspondem à execução local dos testes.
+A execução no GitHub Actions será confirmada após
+a publicação dos commits.
+
+### Integração contínua (CI)
+
+O projeto possui um workflow em
+`.github/workflows/ci.yml`, configurado para executar
+automaticamente em pushes e pull requests para `main`.
+
+O pipeline possui dois jobs:
+
+- **PHP:** configura PHP 8.4, instala dependências,
+  compila o frontend e executa os testes Laravel.
+- **JavaScript:** configura Node.js 24 e executa
+  os testes automatizados de JavaScript.
+
+No ambiente de testes Laravel, o banco utiliza
+SQLite em memória, com fila `sync`, cache `array`
+e sessões `array`.
 
 ---
 
